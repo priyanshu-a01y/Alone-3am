@@ -24,15 +24,7 @@ export default function Player() {
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.7);
-
     const song = songs[current];
-    const audio = document.getElementById(
-        "global-audio"
-    ) as HTMLAudioElement;
-    audio.play();
-    audio.pause();
-
-    audio.play();
     // Load new song
     useEffect(() => {
         const audio = audioRef.current;
@@ -180,11 +172,12 @@ export default function Player() {
 
                             <div>
                                 <h2 className="text-2xl font-semibold">
-                                    {song.title}
+                                    const songs = [...]
                                 </h2>
 
                                 <p className="mt-1 text-sm text-white/40">
-                                    {song.artist}
+                                    const [current, setCurrent] = useState(0);
+                                    const song = songs[current];
                                 </p>
                             </div>
 
