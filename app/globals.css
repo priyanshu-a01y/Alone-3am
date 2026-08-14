@@ -1,0 +1,278 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #000;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* STARS */
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: white;
+  opacity: 0.5;
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.8);
+  }
+}
+
+/* MOON */
+
+.moon {
+  animation: moonFloat 6s ease-in-out infinite;
+}
+
+@keyframes moonFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* RAIN */
+
+.rain {
+  opacity: 0.25;
+
+  background-image: repeating-linear-gradient(105deg,
+      transparent 0px,
+      transparent 7px,
+      rgba(255, 255, 255, 0.25) 8px,
+      transparent 9px);
+
+  background-size: 18px 30px;
+
+  animation: rainMove 0.7s linear infinite;
+}
+
+@keyframes rainMove {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -20px 40px;
+  }
+}
+
+/* VINYL */
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* SCROLLBAR */
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 20px;
+}
+
+/* MOBILE */
+
+@media (max-width: 640px) {
+  h1 {
+    letter-spacing: 0.12em;
+  }
+}
+
+/* PAGE ENTRY */
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main {
+  animation: pageEnter 0.8s ease-out;
+}
+
+
+/* BUTTON EFFECT */
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* GLASS EFFECT */
+
+.glass {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+
+/* SELECTION */
+
+::selection {
+  background: white;
+  color: black;
+}
+
+/* ALONE 3AM PLAYER */
+.vinyl-spin {
+  animation: vinylSpin 8s linear infinite;
+}
+
+@keyframes vinylSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.control-button {
+  height: 42px;
+  width: 42px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.55);
+  transition: 0.3s;
+}
+
+.control-button:hover {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+}
+
+.play-button {
+  height: 68px;
+  width: 68px;
+  border-radius: 9999px;
+  background: white;
+  color: black;
+  font-size: 20px;
+  transition: 0.3s;
+}
+
+.play-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 35px rgba(255, 255, 255, 0.2);
+}
+
+.music-range {
+  height: 3px;
+  appearance: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.music-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+}
+
+.music-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: white;
+}
+
+/* HOME TITLE */
+
+.home-title {
+  animation: homeTitle 1.2s ease-out;
+}
+
+@keyframes homeTitle {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+    letter-spacing: 0.3em;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    letter-spacing: 0.16em;
+  }
+}
+
+
+/* HERO FADE */
+
+.home-title+p {
+  animation: heroText 1.5s ease-out;
+}
+
+@keyframes heroText {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
