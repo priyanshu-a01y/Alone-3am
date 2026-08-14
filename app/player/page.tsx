@@ -26,7 +26,13 @@ export default function Player() {
     const [volume, setVolume] = useState(0.7);
 
     const song = songs[current];
+    const audio = document.getElementById(
+        "global-audio"
+    ) as HTMLAudioElement;
+    audio.play();
+    audio.pause();
 
+    audio.play();
     // Load new song
     useEffect(() => {
         const audio = audioRef.current;

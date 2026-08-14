@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import GlobalPlayer from "@/components/GlobalPlayer";
 
 export const metadata: Metadata = {
   title: "ALONE 3AM",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <GlobalPlayer />
+        {children}
+      </body>
     </html>
   );
 }
