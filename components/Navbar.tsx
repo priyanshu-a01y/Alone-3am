@@ -23,49 +23,65 @@ export default function Navbar() {
 
         window.addEventListener("scroll", handleScroll);
 
-        return () => window.removeEventListener("scroll", handleScroll);
+        return () =>
+            window.removeEventListener("scroll", handleScroll);
     }, []);
 
     return (
         <header
-            className={`fixed left-1/2 -translate-x-1/2 z-50 transition-all duration-500
-      ${scrolled
-                    ? "top-3 w-[92%] max-w-6xl scale-[0.97]"
-                    : "top-6 w-[96%] max-w-7xl"
+            className={`fixed left-1/2 z-50 -translate-x-1/2 transition-all duration-500
+        ${scrolled
+                    ? "top-3 w-[94%] max-w-6xl"
+                    : "top-5 w-[96%] max-w-7xl"
                 }`}
         >
             <div
                 className="
-        relative
-        overflow-hidden
-        rounded-full
-        border border-white/10
-        bg-black/40
-        backdrop-blur-3xl
-        shadow-[0_0_60px_rgba(255,255,255,0.05)]
-        transition-all
-        duration-500
+          relative overflow-hidden
+          rounded-full
+          border border-white/10
+          bg-black/45
+          backdrop-blur-3xl
+          shadow-[0_0_60px_rgba(255,255,255,0.05)]
         "
             >
                 {/* Glow */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-60" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
 
-                <div className="relative flex items-center justify-between px-8 py-4">
-                    {/* Logo */}
-                    <Link href="/" className="flex items-center gap-4 group">
-                        <span className="text-3xl transition duration-500 group-hover:rotate-12 group-hover:scale-110">
+                <div
+                    className="
+            relative flex items-center
+            px-3 py-2
+            sm:px-6 sm:py-3
+            md:px-8 md:py-4
+          "
+                >
+                    {/* LOGO */}
+                    <Link
+                        href="/"
+                        className="group flex shrink-0 items-center gap-2 sm:gap-3 md:gap-4"
+                    >
+                        <span className="text-2xl transition duration-500 group-hover:rotate-12 sm:text-3xl">
                             🌙
                         </span>
 
                         <div>
-                            <h1 className="text-xl font-black tracking-[10px] text-white">
+                            <h1
+                                className="
+                  text-sm font-black tracking-[4px]
+                  text-white
+                  sm:text-lg sm:tracking-[7px]
+                  md:text-xl md:tracking-[10px]
+                "
+                            >
                                 ALONE
                             </h1>
 
                             <p
-                                className="text-xs text-white/50"
+                                className="text-[8px] text-white/50 sm:text-[10px]"
                                 style={{
-                                    fontFamily: "'Noto Serif Devanagari', serif",
+                                    fontFamily:
+                                        "'Noto Serif Devanagari', serif",
                                 }}
                             >
                                 अकेले।
@@ -73,8 +89,15 @@ export default function Navbar() {
                         </div>
                     </Link>
 
-                    {/* Menu */}
-                    <nav className="flex items-center gap-3">
+                    {/* MENU */}
+                    <nav
+                        className="
+              ml-auto flex items-center
+              gap-0.5
+              sm:gap-1
+              md:gap-3
+            "
+                    >
                         {links.map((item) => {
                             const active = pathname === item.href;
 
@@ -83,25 +106,38 @@ export default function Navbar() {
                                     key={item.href}
                                     href={item.href}
                                     className={`
-                  relative
-                  rounded-full
-                  px-5
-                  py-3
-                  transition-all
-                  duration-300
-                  ${active
+                    relative shrink-0
+                    rounded-full
+                    px-2 py-2
+                    sm:px-3 sm:py-2.5
+                    md:px-5 md:py-3
+                    transition-all duration-300
+                    ${active
                                             ? "bg-white/10 text-white shadow-lg"
                                             : "text-white/60 hover:bg-white/5 hover:text-white"
                                         }
-                `}
+                  `}
                                 >
                                     <div className="text-center">
-                                        <p className="text-sm font-medium">{item.en}</p>
+                                        <p
+                                            className="
+                        text-[9px] font-medium
+                        sm:text-[11px]
+                        md:text-sm
+                      "
+                                        >
+                                            {item.en}
+                                        </p>
 
                                         <p
-                                            className="text-[10px] text-white/45"
+                                            className="
+                        text-[7px] text-white/45
+                        sm:text-[8px]
+                        md:text-[10px]
+                      "
                                             style={{
-                                                fontFamily: "'Noto Serif Devanagari', serif",
+                                                fontFamily:
+                                                    "'Noto Serif Devanagari', serif",
                                             }}
                                         >
                                             {item.hi}
@@ -109,7 +145,15 @@ export default function Navbar() {
                                     </div>
 
                                     {active && (
-                                        <span className="absolute left-1/2 bottom-1 h-1 w-8 -translate-x-1/2 rounded-full bg-white" />
+                                        <span
+                                            className="
+                        absolute bottom-1 left-1/2
+                        h-0.5 w-5
+                        -translate-x-1/2
+                        rounded-full bg-white
+                        sm:h-1 sm:w-7
+                      "
+                                        />
                                     )}
                                 </Link>
                             );
