@@ -18,15 +18,26 @@ type Song = {
 type PlayerContextType = {
     currentSong: Song;
     isPlaying: boolean;
+
+    currentTime: number;
+    duration: number;
+
     togglePlay: () => Promise<void>;
     nextSong: () => void;
     prevSong: () => void;
+
+    seek: (value: number) => void;
+
     volume: number;
     setVolume: (value: number) => void;
 };
 
 const PlayerContext =
     createContext<PlayerContextType | null>(null);
+
+/* ----------------------------------
+   SHUFFLE
+---------------------------------- */
 
 function shuffleArray(length: number) {
     const array = Array.from(
@@ -56,27 +67,39 @@ export function PlayerProvider({
     const audioRef =
         useRef<HTMLAudioElement>(null);
 
-    const playlistRef = useRef<number[]>([]);
-    const positionRef = useRef(0);
+    const playlistRef =
+        useRef<number[]>([]);
 
-    const initializedRef = useRef(false);
-    const shouldPlayRef = useRef(false);
-    const loadingSongRef = useRef(false);
+    const positionRef =
+        useRef(0);
 
-    const [index, setIndex] = useState(0);
+    const initializedRef =
+        useRef(false);
+
+    const shouldPlayRef =
+        useRef(false);
+
+    const [index, setIndex] =
+        useState(0);
+
     const [isPlaying, setIsPlaying] =
         useState(false);
+
+    const [currentTime, setCurrentTime] =
+        useState(0);
+
+    const [duration, setDuration] =
+        useState(0);
 
     const [volume, setVolumeState] =
         useState(0.7);
 
-    const currentSong = songs[index];
+    const currentSong =
+        songs[index];
 
-    /*
-     * -----------------------------
-     * INITIAL PLAYLIST
-     * -----------------------------
-     */
+    /* ----------------------------------
+       INITIALIZE PLAYLIST
+    ---------------------------------- */
 
     useEffect(() => {
         if (initializedRef.current) return;
@@ -86,127 +109,238 @@ export function PlayerProvider({
         const playlist =
             shuffleArray(songs.length);
 
-        playlistRef.current = playlist;
+        playlistRef.current =
+            playlist;
+
         positionRef.current = 0;
 
         setIndex(playlist[0]);
     }, []);
 
-    /*
-     * -----------------------------
-     * LOAD SONG
-     * -----------------------------
-     */
+    /* ----------------------------------
+       LOAD SONG
+    ---------------------------------- */
 
     useEffect(() => {
-        const audio = audioRef.current;
+        const audio =
+            audioRef.current;
 
         if (!audio) return;
 
-        const src = songs[index]?.src;
+        const src =
+            songs[index]?.src;
 
         if (!src) return;
 
-        loadingSongRef.current = true;
-
         audio.pause();
+
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
 
         audio.src = src;
         audio.volume = volume;
 
-        const shouldPlay =
-            shouldPlayRef.current;
+        /*
+         * load() starts loading the new
+         * audio without waiting for
+         * duration before play().
+         */
+        audio.load();
 
-        shouldPlayRef.current = false;
+        if (shouldPlayRef.current) {
+            shouldPlayRef.current = false;
 
-        const playWhenReady = async () => {
-            if (!shouldPlay) {
-                loadingSongRef.current = false;
-                return;
+            /*
+             * Calling play immediately after
+             * changing the source allows the
+             * browser to handle loading itself.
+             */
+            const promise =
+                audio.play();
+
+            if (promise) {
+                promise
+                    .then(() => {
+                        setIsPlaying(true);
+                    })
+                    .catch((error) => {
+                        if (
+                            error?.name !==
+                            "AbortError"
+                        ) {
+                            console.error(
+                                "Next song play error:",
+                                error
+                            );
+                        }
+
+                        setIsPlaying(false);
+                    });
             }
+        }
+    }, [index]);
 
-            try {
-                await audio.play();
-                setIsPlaying(true);
-            } catch (error) {
-                if (
-                    error instanceof DOMException &&
-                    error.name === "AbortError"
-                ) {
-                    return;
-                }
+    /* ----------------------------------
+       AUDIO EVENTS
+    ---------------------------------- */
 
-                console.error(
-                    "Audio play error:",
-                    error
-                );
+    useEffect(() => {
+        const audio =
+            audioRef.current;
 
-                setIsPlaying(false);
-            } finally {
-                loadingSongRef.current = false;
+        if (!audio) return;
+
+        const handleTimeUpdate = () => {
+            setCurrentTime(
+                audio.currentTime || 0
+            );
+        };
+
+        const handleLoadedMetadata = () => {
+            if (
+                Number.isFinite(audio.duration)
+            ) {
+                setDuration(audio.duration);
             }
         };
 
-        const handleCanPlay = () => {
-            audio.removeEventListener(
-                "canplay",
-                handleCanPlay
-            );
+        const handleDurationChange = () => {
+            if (
+                Number.isFinite(audio.duration)
+            ) {
+                setDuration(audio.duration);
+            }
+        };
 
-            void playWhenReady();
+        const handleLoadedData = () => {
+            if (
+                Number.isFinite(audio.duration)
+            ) {
+                setDuration(audio.duration);
+            }
+        };
+
+        const handlePlay = () => {
+            setIsPlaying(true);
+        };
+
+        const handlePause = () => {
+            setIsPlaying(false);
+        };
+
+        const handleEnded = () => {
+            nextSong();
         };
 
         audio.addEventListener(
-            "canplay",
-            handleCanPlay
+            "timeupdate",
+            handleTimeUpdate
         );
 
-        audio.load();
+        audio.addEventListener(
+            "loadedmetadata",
+            handleLoadedMetadata
+        );
 
-        /*
-         * If browser already has enough data.
-         */
-        if (audio.readyState >= 3) {
-            void playWhenReady();
-        }
+        audio.addEventListener(
+            "durationchange",
+            handleDurationChange
+        );
+
+        audio.addEventListener(
+            "loadeddata",
+            handleLoadedData
+        );
+
+        audio.addEventListener(
+            "play",
+            handlePlay
+        );
+
+        audio.addEventListener(
+            "pause",
+            handlePause
+        );
+
+        audio.addEventListener(
+            "ended",
+            handleEnded
+        );
 
         return () => {
             audio.removeEventListener(
-                "canplay",
-                handleCanPlay
+                "timeupdate",
+                handleTimeUpdate
+            );
+
+            audio.removeEventListener(
+                "loadedmetadata",
+                handleLoadedMetadata
+            );
+
+            audio.removeEventListener(
+                "durationchange",
+                handleDurationChange
+            );
+
+            audio.removeEventListener(
+                "loadeddata",
+                handleLoadedData
+            );
+
+            audio.removeEventListener(
+                "play",
+                handlePlay
+            );
+
+            audio.removeEventListener(
+                "pause",
+                handlePause
+            );
+
+            audio.removeEventListener(
+                "ended",
+                handleEnded
             );
         };
-    }, [index, volume]);
+    }, []);
 
-    /*
-     * -----------------------------
-     * VOLUME
-     * -----------------------------
-     */
+    /* ----------------------------------
+       VOLUME
+  
+       IMPORTANT:
+       Changing volume must NOT reload
+       the audio.
+    ---------------------------------- */
 
     useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.volume = volume;
-        }
+        const audio =
+            audioRef.current;
+
+        if (!audio) return;
+
+        audio.volume = volume;
     }, [volume]);
 
-    /*
-     * -----------------------------
-     * PLAY / PAUSE
-     * -----------------------------
-     */
+    /* ----------------------------------
+       PLAY / PAUSE
+    ---------------------------------- */
 
     const togglePlay = async () => {
-        const audio = audioRef.current;
+        const audio =
+            audioRef.current;
 
         if (!audio) return;
 
         try {
             if (audio.paused) {
                 await audio.play();
+
                 setIsPlaying(true);
             } else {
                 audio.pause();
+
                 setIsPlaying(false);
             }
         } catch (error) {
@@ -224,23 +358,27 @@ export function PlayerProvider({
         }
     };
 
-    /*
-     * -----------------------------
-     * NEXT
-     * -----------------------------
-     */
+    /* ----------------------------------
+       NEXT
+    ---------------------------------- */
 
     const nextSong = () => {
-        const playlist = playlistRef.current;
+        const playlist =
+            playlistRef.current;
 
         if (!playlist.length) return;
 
         let nextPosition =
             positionRef.current + 1;
 
-        if (nextPosition >= playlist.length) {
+        if (
+            nextPosition >=
+            playlist.length
+        ) {
             const oldSong =
-                playlist[positionRef.current];
+                playlist[
+                positionRef.current
+                ];
 
             const newPlaylist =
                 shuffleArray(songs.length);
@@ -271,25 +409,26 @@ export function PlayerProvider({
             nextPosition;
 
         const nextIndex =
-            playlistRef.current[nextPosition];
+            playlistRef.current[
+            nextPosition
+            ];
 
         /*
-         * Tell loader to autoplay
-         * after audio becomes ready.
+         * Next was manually pressed,
+         * therefore keep playing.
          */
         shouldPlayRef.current = true;
 
         setIndex(nextIndex);
     };
 
-    /*
-     * -----------------------------
-     * PREVIOUS
-     * -----------------------------
-     */
+    /* ----------------------------------
+       PREVIOUS
+    ---------------------------------- */
 
     const prevSong = () => {
-        const playlist = playlistRef.current;
+        const playlist =
+            playlistRef.current;
 
         if (!playlist.length) return;
 
@@ -305,80 +444,87 @@ export function PlayerProvider({
             previousPosition;
 
         const previousIndex =
-            playlist[previousPosition];
+            playlist[
+            previousPosition
+            ];
 
         shouldPlayRef.current = true;
 
         setIndex(previousIndex);
     };
 
-    /*
-     * -----------------------------
-     * SONG ENDED
-     * -----------------------------
-     */
+    /* ----------------------------------
+       SEEK
+    ---------------------------------- */
 
-    const handleEnded = () => {
-        nextSong();
-    };
+    const seek = (value: number) => {
+        const audio =
+            audioRef.current;
 
-    /*
-     * -----------------------------
-     * AUDIO ERROR
-     * -----------------------------
-     */
+        if (!audio) return;
 
-    const handleAudioError = () => {
-        console.error(
-            "Audio failed to load:",
-            songs[index]?.src
+        if (
+            !Number.isFinite(audio.duration) ||
+            audio.duration <= 0
+        ) {
+            return;
+        }
+
+        const safeValue =
+            Math.max(
+                0,
+                Math.min(
+                    value,
+                    audio.duration
+                )
+            );
+
+        audio.currentTime =
+            safeValue;
+
+        setCurrentTime(
+            safeValue
         );
-
-        setIsPlaying(false);
-        loadingSongRef.current = false;
     };
 
-    /*
-     * -----------------------------
-     * PROVIDER
-     * -----------------------------
-     */
+    /* ----------------------------------
+       PROVIDER
+    ---------------------------------- */
 
     return (
         <PlayerContext.Provider
             value={{
                 currentSong,
                 isPlaying,
+
+                currentTime,
+                duration,
+
                 togglePlay,
                 nextSong,
                 prevSong,
+
+                seek,
+
                 volume,
-                setVolume: setVolumeState,
+                setVolume:
+                    setVolumeState,
             }}
         >
             {children}
 
             <audio
                 ref={audioRef}
-                preload="auto"
-                onPlay={() => {
-                    setIsPlaying(true);
-                }}
-                onPause={() => {
-                    setIsPlaying(false);
-                }}
-                onEnded={handleEnded}
-                onError={handleAudioError}
+                data-alone-player="true"
+                preload="metadata"
             />
         </PlayerContext.Provider>
     );
 }
 
-/*
- * -----------------------------
- * HOOK
- * -----------------------------
- */
+/* ----------------------------------
+   HOOK
+---------------------------------- */
 
 export function usePlayer() {
     const context =
