@@ -10,7 +10,10 @@ import {
 
 import { songs } from "@/data/song";
 
-type Song = (typeof songs)[number];
+type Song = {
+    src: string;
+    mood: string;
+};
 
 type PlayerContextType = {
     currentSong: Song;
@@ -22,149 +25,324 @@ type PlayerContextType = {
     setVolume: (value: number) => void;
 };
 
-const PlayerContext = createContext<PlayerContextType | null>(null);
+const PlayerContext =
+    createContext<PlayerContextType | null>(null);
 
-function createShuffle(length: number) {
-    const order = Array.from({ length }, (_, index) => index);
+function shuffleArray(length: number) {
+    const array = Array.from(
+        { length },
+        (_, i) => i
+    );
 
-    for (let index = order.length - 1; index > 0; index -= 1) {
-        const swapIndex = Math.floor(Math.random() * (index + 1));
-        [order[index], order[swapIndex]] = [order[swapIndex], order[index]];
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(
+            Math.random() * (i + 1)
+        );
+
+        [array[i], array[j]] = [
+            array[j],
+            array[i],
+        ];
     }
 
-    return order;
+    return array;
 }
 
-function isExpectedPlaybackError(error: unknown) {
-    return error instanceof DOMException && error.name === "AbortError";
-}
+export function PlayerProvider({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const audioRef =
+        useRef<HTMLAudioElement>(null);
 
-export function PlayerProvider({ children }: { children: React.ReactNode }) {
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const shuffleRef = useRef<number[]>([]);
+    const playlistRef = useRef<number[]>([]);
     const positionRef = useRef(0);
+
     const initializedRef = useRef(false);
-    const wantsPlaybackRef = useRef(false);
-    const playRequestRef = useRef(0);
+    const shouldPlayRef = useRef(false);
+    const loadingSongRef = useRef(false);
 
     const [index, setIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [volume, setVolumeState] = useState(0.7);
+    const [isPlaying, setIsPlaying] =
+        useState(false);
 
-    const currentSong = songs[index] ?? songs[0];
+    const [volume, setVolumeState] =
+        useState(0.7);
+
+    const currentSong = songs[index];
+
+    /*
+     * -----------------------------
+     * INITIAL PLAYLIST
+     * -----------------------------
+     */
 
     useEffect(() => {
-        if (initializedRef.current || songs.length === 0) return;
+        if (initializedRef.current) return;
 
         initializedRef.current = true;
-        shuffleRef.current = createShuffle(songs.length);
+
+        const playlist =
+            shuffleArray(songs.length);
+
+        playlistRef.current = playlist;
         positionRef.current = 0;
-        setIndex(shuffleRef.current[0]);
+
+        setIndex(playlist[0]);
     }, []);
 
+    /*
+     * -----------------------------
+     * LOAD SONG
+     * -----------------------------
+     */
+
     useEffect(() => {
         const audio = audioRef.current;
+
         if (!audio) return;
 
-        const requestId = ++playRequestRef.current;
-        const shouldPlay = wantsPlaybackRef.current;
+        const src = songs[index]?.src;
+
+        if (!src) return;
+
+        loadingSongRef.current = true;
 
         audio.pause();
-        audio.currentTime = 0;
-        audio.src = currentSong.src;
-        audio.load();
 
-        if (!shouldPlay) return;
+        audio.src = src;
+        audio.volume = volume;
 
-        void audio.play()
-            .then(() => {
-                if (playRequestRef.current === requestId) {
-                    setIsPlaying(true);
-                }
-            })
-            .catch((error: unknown) => {
-                if (playRequestRef.current !== requestId || isExpectedPlaybackError(error)) {
-                    return;
-                }
+        const shouldPlay =
+            shouldPlayRef.current;
 
-                console.error("Audio play error:", error);
-                setIsPlaying(false);
-            });
-    }, [currentSong.src]);
+        shouldPlayRef.current = false;
 
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (audio) audio.volume = volume;
-    }, [volume]);
-
-    const togglePlay = async () => {
-        const audio = audioRef.current;
-        if (!audio) return;
-
-        const requestId = ++playRequestRef.current;
-
-        if (wantsPlaybackRef.current) {
-            wantsPlaybackRef.current = false;
-            audio.pause();
-            setIsPlaying(false);
-            return;
-        }
-
-        wantsPlaybackRef.current = true;
-
-        try {
-            await audio.play();
-
-            if (playRequestRef.current === requestId) {
-                setIsPlaying(true);
-            }
-        } catch (error) {
-            if (playRequestRef.current !== requestId || isExpectedPlaybackError(error)) {
+        const playWhenReady = async () => {
+            if (!shouldPlay) {
+                loadingSongRef.current = false;
                 return;
             }
 
-            wantsPlaybackRef.current = false;
-            console.error("Play/pause error:", error);
-            setIsPlaying(false);
+            try {
+                await audio.play();
+                setIsPlaying(true);
+            } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+
+                console.error(
+                    "Audio play error:",
+                    error
+                );
+
+                setIsPlaying(false);
+            } finally {
+                loadingSongRef.current = false;
+            }
+        };
+
+        const handleCanPlay = () => {
+            audio.removeEventListener(
+                "canplay",
+                handleCanPlay
+            );
+
+            void playWhenReady();
+        };
+
+        audio.addEventListener(
+            "canplay",
+            handleCanPlay
+        );
+
+        audio.load();
+
+        /*
+         * If browser already has enough data.
+         */
+        if (audio.readyState >= 3) {
+            void playWhenReady();
+        }
+
+        return () => {
+            audio.removeEventListener(
+                "canplay",
+                handleCanPlay
+            );
+        };
+    }, [index, volume]);
+
+    /*
+     * -----------------------------
+     * VOLUME
+     * -----------------------------
+     */
+
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.volume = volume;
+        }
+    }, [volume]);
+
+    /*
+     * -----------------------------
+     * PLAY / PAUSE
+     * -----------------------------
+     */
+
+    const togglePlay = async () => {
+        const audio = audioRef.current;
+
+        if (!audio) return;
+
+        try {
+            if (audio.paused) {
+                await audio.play();
+                setIsPlaying(true);
+            } else {
+                audio.pause();
+                setIsPlaying(false);
+            }
+        } catch (error) {
+            if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+            ) {
+                return;
+            }
+
+            console.error(
+                "Play/Pause error:",
+                error
+            );
         }
     };
 
-    const selectPosition = (nextPosition: number, autoplay = false) => {
-        positionRef.current = nextPosition;
-        wantsPlaybackRef.current = autoplay || !audioRef.current?.paused;
-        setIndex(shuffleRef.current[nextPosition]);
-    };
+    /*
+     * -----------------------------
+     * NEXT
+     * -----------------------------
+     */
 
-    const nextSong = (autoplay = false) => {
-        if (shuffleRef.current.length === 0) return;
+    const nextSong = () => {
+        const playlist = playlistRef.current;
 
-        let nextPosition = positionRef.current + 1;
+        if (!playlist.length) return;
 
-        if (nextPosition >= shuffleRef.current.length) {
-            const previousLast = shuffleRef.current.at(-1);
-            const nextShuffle = createShuffle(songs.length);
+        let nextPosition =
+            positionRef.current + 1;
 
-            if (nextShuffle.length > 1 && nextShuffle[0] === previousLast) {
-                [nextShuffle[0], nextShuffle[1]] = [nextShuffle[1], nextShuffle[0]];
+        if (nextPosition >= playlist.length) {
+            const oldSong =
+                playlist[positionRef.current];
+
+            const newPlaylist =
+                shuffleArray(songs.length);
+
+            /*
+             * Prevent immediate repeat.
+             */
+            if (
+                newPlaylist.length > 1 &&
+                newPlaylist[0] === oldSong
+            ) {
+                [
+                    newPlaylist[0],
+                    newPlaylist[1],
+                ] = [
+                        newPlaylist[1],
+                        newPlaylist[0],
+                    ];
             }
 
-            shuffleRef.current = nextShuffle;
+            playlistRef.current =
+                newPlaylist;
+
             nextPosition = 0;
         }
 
-        selectPosition(nextPosition, autoplay);
+        positionRef.current =
+            nextPosition;
+
+        const nextIndex =
+            playlistRef.current[nextPosition];
+
+        /*
+         * Tell loader to autoplay
+         * after audio becomes ready.
+         */
+        shouldPlayRef.current = true;
+
+        setIndex(nextIndex);
     };
+
+    /*
+     * -----------------------------
+     * PREVIOUS
+     * -----------------------------
+     */
 
     const prevSong = () => {
-        if (shuffleRef.current.length === 0) return;
+        const playlist = playlistRef.current;
 
-        const previousPosition =
-            positionRef.current === 0
-                ? shuffleRef.current.length - 1
-                : positionRef.current - 1;
+        if (!playlist.length) return;
 
-        selectPosition(previousPosition);
+        let previousPosition =
+            positionRef.current - 1;
+
+        if (previousPosition < 0) {
+            previousPosition =
+                playlist.length - 1;
+        }
+
+        positionRef.current =
+            previousPosition;
+
+        const previousIndex =
+            playlist[previousPosition];
+
+        shouldPlayRef.current = true;
+
+        setIndex(previousIndex);
     };
+
+    /*
+     * -----------------------------
+     * SONG ENDED
+     * -----------------------------
+     */
+
+    const handleEnded = () => {
+        nextSong();
+    };
+
+    /*
+     * -----------------------------
+     * AUDIO ERROR
+     * -----------------------------
+     */
+
+    const handleAudioError = () => {
+        console.error(
+            "Audio failed to load:",
+            songs[index]?.src
+        );
+
+        setIsPlaying(false);
+        loadingSongRef.current = false;
+    };
+
+    /*
+     * -----------------------------
+     * PROVIDER
+     * -----------------------------
+     */
 
     return (
         <PlayerContext.Provider
@@ -179,23 +357,37 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
             }}
         >
             {children}
+
             <audio
                 ref={audioRef}
-                data-alone-player
-                preload="metadata"
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => nextSong(true)}
+                preload="auto"
+                onPlay={() => {
+                    setIsPlaying(true);
+                }}
+                onPause={() => {
+                    setIsPlaying(false);
+                }}
+                onEnded={handleEnded}
+                onError={handleAudioError}
             />
         </PlayerContext.Provider>
     );
 }
 
+/*
+ * -----------------------------
+ * HOOK
+ * -----------------------------
+ */
+
 export function usePlayer() {
-    const context = useContext(PlayerContext);
+    const context =
+        useContext(PlayerContext);
 
     if (!context) {
-        throw new Error("usePlayer must be used inside PlayerProvider");
+        throw new Error(
+            "usePlayer must be used inside PlayerProvider"
+        );
     }
 
     return context;
