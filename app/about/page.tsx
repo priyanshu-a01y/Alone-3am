@@ -2,166 +2,131 @@
 
 import Link from "next/link";
 
-export default function About() {
+export default function AboutPage() {
     return (
-        <main className="relative min-h-screen overflow-hidden bg-black text-white">
+        <main className="min-h-screen bg-black px-6 pb-32 pt-40 text-white">
 
-            {/* BACKGROUND */}
-            <div
-                className="fixed inset-0 bg-cover bg-center"
-                style={{
-                    backgroundImage: "url('/player-bg.jpg')",
-                }}
-            />
+            <div className="mx-auto max-w-5xl">
 
-            {/* DARK OVERLAY */}
-            <div className="fixed inset-0 bg-black/85" />
-
-            {/* NIGHT GLOW */}
-            <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(40,55,90,0.25),transparent_60%)]" />
-
-
-            {/* NAVBAR */}
-            <nav className="relative z-20 flex items-center justify-between px-7 py-5 md:px-12">
-
-                <Link
-                    href="/"
-                    className="text-sm font-bold tracking-[0.35em]"
-                >
-                    ALONE 3AM
-                </Link>
-
-                <Link
-                    href="/"
-                    className="text-xs text-white/40 transition hover:text-white"
-                >
-                    ← Home
-                </Link>
-
-            </nav>
-
-
-            {/* CONTENT */}
-            <section className="relative z-10 flex min-h-[calc(100vh-80px)] items-center justify-center px-6 py-12">
-
-                <div className="w-full max-w-3xl text-center">
-
-                    {/* LABEL */}
-
-                    <p className="text-[10px] tracking-[0.5em] text-white/30">
-                        AFTER MIDNIGHT
+                {/* Small intro */}
+                <div className="mb-8">
+                    <p
+                        className="text-sm tracking-[0.35em] text-white/35"
+                        style={{
+                            fontFamily:
+                                "'Noto Serif Devanagari', 'Nirmala UI', serif",
+                        }}
+                    >
+                        एक छोटी सी जगह
                     </p>
-
-
-                    {/* TITLE */}
-
-                    <h1 className="mt-5 text-5xl font-semibold tracking-[0.15em] md:text-7xl">
-                        ALONE 3AM
-                    </h1>
-
-
-                    {/* INTRO */}
-
-                    <p className="mx-auto mt-7 max-w-xl text-base leading-8 text-white/45">
-                        A quiet place for the hours when everyone else seems
-                        to be asleep.
-                    </p>
-
-
-                    {/* STORY */}
-
-                    <div className="mt-12 rounded-[28px] border border-white/10 bg-black/45 p-7 text-left shadow-2xl backdrop-blur-xl md:p-10">
-
-                        <p className="text-xs tracking-[0.35em] text-white/25">
-                            WHY THIS EXISTS
-                        </p>
-
-                        <p className="mt-6 leading-8 text-white/60">
-                            Some nights feel different.
-                        </p>
-
-                        <p className="mt-5 leading-8 text-white/60">
-                            The room gets quieter. The city slows down.
-                            And somehow, the thoughts you've been avoiding
-                            become impossible to ignore.
-                        </p>
-
-                        <p className="mt-5 leading-8 text-white/60">
-                            ALONE 3AM is a small space built for those moments.
-                            Put on some music. Read a thought. Write something.
-                            Or simply stay here for a while.
-                        </p>
-
-                        <p className="mt-5 leading-8 text-white/60">
-                            You don't have to explain anything here.
-                        </p>
-
-                    </div>
-
-
-                    {/* FEATURES */}
-
-                    <div className="mt-8 grid gap-3 sm:grid-cols-3">
-
-                        <Link
-                            href="/player"
-                            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.08]"
-                        >
-                            <p className="text-lg">♫</p>
-
-                            <p className="mt-3 text-xs tracking-[0.2em] text-white/70">
-                                RADIO
-                            </p>
-
-                            <p className="mt-2 text-[10px] text-white/30">
-                                Stay with the music.
-                            </p>
-                        </Link>
-
-
-                        <Link
-                            href="/quotes"
-                            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.08]"
-                        >
-                            <p className="text-lg">“</p>
-
-                            <p className="mt-3 text-xs tracking-[0.2em] text-white/70">
-                                THOUGHTS
-                            </p>
-
-                            <p className="mt-2 text-[10px] text-white/30">
-                                Read what others feel.
-                            </p>
-                        </Link>
-
-
-                        <Link
-                            href="/journal"
-                            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.08]"
-                        >
-                            <p className="text-lg">✎</p>
-
-                            <p className="mt-3 text-xs tracking-[0.2em] text-white/70">
-                                JOURNAL
-                            </p>
-
-                            <p className="mt-2 text-[10px] text-white/30">
-                                Write what you can't say.
-                            </p>
-                        </Link>
-
-                    </div>
-
-
-                    {/* FOOTER */}
-
-                    <p className="mt-12 text-[9px] tracking-[0.4em] text-white/20">
-                        FOR ANYONE WHO FINDS PEACE AFTER MIDNIGHT
-                    </p>
-
                 </div>
 
-            </section>
+                {/* Main heading */}
+                <h1
+                    className="text-6xl font-semibold tracking-tight md:text-8xl"
+                    style={{
+                        fontFamily:
+                            "'Noto Serif Devanagari', 'Nirmala UI', serif",
+                    }}
+                >
+                    अकेले।
+                </h1>
+
+                <p className="mt-5 max-w-2xl text-lg leading-8 text-white/50 md:text-xl">
+                    A quiet place for the hours when the world goes silent.
+                </p>
+
+                {/* Creator card */}
+                <section className="mt-20 rounded-3xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur-xl md:p-12">
+
+                    <p className="text-xs uppercase tracking-[0.35em] text-white/35">
+                        The person behind it
+                    </p>
+
+                    <h2 className="mt-5 text-3xl font-medium md:text-5xl">
+                        Hi, I am Priyanshu.
+                    </h2>
+
+                    <p className="mt-6 max-w-2xl text-base leading-8 text-white/50 md:text-lg">
+                        The creator of <span className="text-white/80">ALONE 3AM</span>.
+                        <br />
+                        I made this little corner for anyone who finds themselves
+                        awake when everyone else is asleep.
+                    </p>
+
+                    <p
+                        className="mt-8 text-2xl text-white/80"
+                        style={{
+                            fontFamily:
+                                "'Noto Serif Devanagari', 'Nirmala UI', serif",
+                        }}
+                    >
+                        कुछ रातें अकेले बिताने के लिए होती हैं।
+                    </p>
+
+                </section>
+
+                {/* Links */}
+                <section className="mt-8 grid gap-4 md:grid-cols-3">
+
+                    <a
+                        href="https://www.instagram.com/priyanshu.pp7?igsh=MWtsNGd2NGJtZm5iNw=="
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
+                    >
+                        <p className="text-xs uppercase tracking-[0.3em] text-white/30">
+                            Instagram
+                        </p>
+
+                        <p className="mt-3 text-lg text-white/80 transition group-hover:text-white">
+                            @priyanshu.pp7
+                        </p>
+                    </a>
+
+                    <a
+                        href="https://youtube.com/@priyanshu-is-alive?si=5WT6Vs5t8eE7jv07"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
+                    >
+                        <p className="text-xs uppercase tracking-[0.3em] text-white/30">
+                            YouTube
+                        </p>
+
+                        <p className="mt-3 text-lg text-white/80 transition group-hover:text-white">
+                            Priyanshu Is Alive
+                        </p>
+                    </a>
+
+                    <a
+                        href="https://www.instagram.com/_dear.light_?igsh=MXFkeWY3ZGx6N2ZoNg==&igsi=MXFkeWY3ZGx6N2ZoNg=="
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.05]"
+                    >
+                        <p className="text-xs uppercase tracking-[0.3em] text-white/30">
+                            Another little corner
+                        </p>
+
+                        <p className="mt-3 text-lg text-white/80 transition group-hover:text-white">
+                            @_dear.light_
+                        </p>
+                    </a>
+
+                </section>
+
+                {/* Back */}
+                <div className="mt-16">
+                    <Link
+                        href="/"
+                        className="text-sm tracking-[0.2em] text-white/35 transition hover:text-white"
+                    >
+                        ← BACK TO THE NIGHT
+                    </Link>
+                </div>
+
+            </div>
 
         </main>
     );

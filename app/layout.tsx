@@ -1,9 +1,12 @@
 import "./globals.css";
 import type { Metadata } from "next";
+
 import { PlayerProvider } from "@/context/PlayerContext";
+import MiniPlayer from "@/components/MiniPlayer";
+
 export const metadata: Metadata = {
   title: "ALONE · 3AM",
-  description: "Main website nahi, 3 baje raat ka mood."
+  description: "कुछ रातें सिर्फ़ महसूस करने के लिए होती हैं।",
 };
 
 export default function RootLayout({
@@ -13,9 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className="bg-black text-white">
         <PlayerProvider>
           {children}
+
+          <MiniPlayer />
         </PlayerProvider>
       </body>
     </html>

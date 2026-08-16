@@ -1,4 +1,5 @@
 "use client";
+
 import Navbar from "../components/Navbar";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -18,58 +19,81 @@ export default function Home() {
 
     updateTime();
 
-    const interval = setInterval(updateTime, 1000);
+    const timer = setInterval(
+      updateTime,
+      1000
+    );
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(timer);
+    };
   }, []);
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-black text-white">
 
-      {/* BACKGROUND */}
+      {/* Background */}
+
       <div
         className="fixed inset-0 bg-cover bg-center"
         style={{
-          backgroundImage: "url('/home-bg.jpg')",
+          backgroundImage:
+            "url('/quotes-bg.jpg')",
         }}
       />
-      <Navbar />
-      {/* CINEMATIC DARKNESS */}
+
+      {/* Darkness */}
+
       <div className="fixed inset-0 bg-black/65" />
 
-      {/* TOP DARK GRADIENT */}
-      <div className="fixed inset-0 bg-gradient-to-b from-black/70 via-transparent to-black" />
+      <div className="fixed inset-0 bg-gradient-to-b from-black/80 via-transparent to-black" />
 
-      {/* BLUE NIGHT LIGHT */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(45,60,100,0.25),transparent_55%)]" />
+      {/* Night light */}
 
-      {/* STARS */}
-      <div className="stars fixed inset-0">
+      <div
+        className="fixed inset-0"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 35%, rgba(45, 60, 100, 0.25), transparent 55%)",
+        }}
+      />
 
-        {Array.from({ length: 70 }).map((_, i) => (
-          <span
-            key={i}
-            className="star"
-            style={{
-              left: `${(i * 47) % 100}%`,
-              top: `${(i * 67) % 75}%`,
-              animationDelay: `${(i % 6) * 0.5}s`,
-            }}
-          />
-        ))}
+      {/* Navbar */}
 
+      <div className="relative z-50">
+        <Navbar />
       </div>
 
+      {/* Stars */}
 
+      <div className="pointer-events-none fixed inset-0 z-[2]">
+        {Array.from({ length: 70 }).map(
+          (_, i) => (
+            <span
+              key={i}
+              className="star"
+              style={{
+                left:
+                  `${(i * 47) % 100}%`,
+                top:
+                  `${(i * 67) % 75}%`,
+                animationDelay:
+                  `${(i % 6) * 0.5}s`,
+              }}
+            />
+          )
+        )}
+      </div>
 
-      {/* HERO */}
+      {/* Hero */}
+
       <section className="relative z-10 flex min-h-[calc(100vh-90px)] flex-col items-center justify-center px-6 pb-16 text-center">
 
+        {/* Status */}
 
-        {/* STATUS */}
         <div className="mb-8 flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-4 py-2 backdrop-blur-md">
 
-          <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_white]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-white shadow-[0_0_10px_white] animate-pulse" />
 
           <span className="text-[9px] tracking-[0.3em] text-white/45">
             THE NIGHT IS QUIET
@@ -77,69 +101,93 @@ export default function Home() {
 
         </div>
 
+        {/* Small heading */}
 
-        {/* MOON */}
-        <div className="moon relative mb-9">
+        <p className="mb-5 text-[9px] uppercase tracking-[0.5em] text-white/25">
+          AFTER MIDNIGHT
+        </p>
 
-          <div className="absolute inset-0 rounded-full bg-white/20 blur-3xl" />
+        {/* Main title */}
 
-          <div className="relative h-24 w-24 overflow-hidden rounded-full bg-gradient-to-br from-white via-gray-200 to-gray-500 shadow-[0_0_90px_25px_rgba(255,255,255,0.18)] md:h-28 md:w-28">
+        <h1 className="home-title text-5xl font-black tracking-[0.16em] drop-shadow-[0_0_35px_rgba(255,255,255,0.25)] sm:text-6xl md:text-8xl">
+          ALONE 3AM
+        </h1>
 
-            <div className="absolute left-5 top-7 h-4 w-4 rounded-full bg-gray-400/25" />
+        {/* Divider */}
 
-            <div className="absolute left-14 top-14 h-5 w-5 rounded-full bg-gray-500/20" />
+        <div className="mt-7 flex items-center gap-4">
 
-            <div className="absolute left-8 top-17 h-3 w-3 rounded-full bg-gray-500/25" />
+          <span className="h-px w-10 bg-white/10" />
 
-          </div>
+          <span className="text-[8px] tracking-[0.45em] text-white/20">
+            THE HOURS BETWEEN
+          </span>
+
+          <span className="h-px w-10 bg-white/10" />
 
         </div>
 
+        {/* Tagline */}
 
-        {/* TITLE */}
-        <h1 className="home-title text-5xl font-black tracking-[0.16em] drop-shadow-[0_0_35px_rgba(255,255,255,0.25)] sm:text-6xl md:text-8xl">
-
-          ALONE 3AM
-
-        </h1>
-
-
-        {/* TAGLINE */}
         <p className="mt-7 max-w-lg text-sm leading-7 text-white/55 md:text-base">
-
           For anyone who finds peace after midnight.
-
         </p>
 
+        {/* Buttons */}
 
-        {/* BUTTON */}
-        <Link
-          href="/player"
-          className="group mt-10 rounded-full border border-white/20 bg-white/[0.08] px-9 py-3.5 text-xs tracking-[0.2em] text-white/80 backdrop-blur-md transition duration-500 hover:scale-105 hover:border-white/40 hover:bg-white hover:text-black"
-        >
-          ENTER THE NIGHT
-        </Link>
+        <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
 
+          <Link
+            href="/player"
+            className="rounded-full border border-white/20 bg-white/[0.08] px-9 py-3.5 text-xs tracking-[0.2em] text-white/80 backdrop-blur-md transition duration-500 hover:scale-105 hover:border-white/40 hover:bg-white hover:text-black"
+          >
+            ENTER THE NIGHT
+          </Link>
 
-        {/* TIME */}
-        <div className="mt-8">
+          <Link
+            href="/journal"
+            className="rounded-full border border-white/10 bg-black/30 px-8 py-3.5 text-xs tracking-[0.2em] text-white/45 backdrop-blur-md transition duration-500 hover:border-white/25 hover:bg-white/[0.08] hover:text-white"
+          >
+            READ THE JOURNAL
+          </Link>
 
-          <p className="text-[9px] tracking-[0.45em] text-white/25">
+        </div>
+
+        {/* Time */}
+
+        <div className="mt-9">
+
+          <p className="text-[8px] tracking-[0.55em] text-white/20">
             LOCAL TIME
           </p>
 
-          <p className="mt-2 text-sm tracking-[0.25em] text-white/40">
+          <p className="mt-2 text-sm tracking-[0.3em] text-white/40">
             {time}
           </p>
 
         </div>
 
+        {/* Bottom hint */}
+
+        <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+
+          <p className="text-[8px] tracking-[0.5em] text-white/15">
+            STAY A WHILE
+          </p>
+
+          <div className="mx-auto mt-3 h-7 w-px bg-gradient-to-b from-white/20 to-transparent" />
+
+        </div>
 
       </section>
 
+      {/* Rain */}
 
-      {/* RAIN */}
       <div className="rain pointer-events-none fixed inset-0 z-20" />
+
+      {/* Bottom fade */}
+
+      <div className="pointer-events-none fixed bottom-0 left-0 right-0 z-30 h-32 bg-gradient-to-t from-black to-transparent" />
 
     </main>
   );

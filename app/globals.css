@@ -45,23 +45,7 @@ a {
   }
 }
 
-/* MOON */
 
-.moon {
-  animation: moonFloat 6s ease-in-out infinite;
-}
-
-@keyframes moonFloat {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
-}
 
 /* RAIN */
 
@@ -275,4 +259,300 @@ a {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+button,
+a {
+  cursor: pointer;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.rain-drop {
+  position: absolute;
+  top: -120px;
+  width: 1px;
+  height: 90px;
+
+  background: linear-gradient(transparent,
+      rgba(255, 255, 255, .4),
+      transparent);
+
+  animation: rain linear infinite;
+}
+
+@keyframes rain {
+
+  from {
+    transform:
+      translateY(-120px) translateX(0);
+  }
+
+  to {
+    transform:
+      translateY(120vh) translateX(-35px);
+  }
+
+}
+
+@keyframes heartbeatBar {
+
+  0%,
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.22;
+  }
+
+  25% {
+    transform: scaleY(0.65);
+    opacity: 0.35;
+  }
+
+  40% {
+    transform: scaleY(1.15);
+    opacity: 0.65;
+  }
+
+  52% {
+    transform: scaleY(0.7);
+    opacity: 0.4;
+  }
+
+  68% {
+    transform: scaleY(0.95);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scaleY(0.45);
+    opacity: 0.22;
+  }
+}
+
+.heartbeat-bar {
+  transform-origin: center;
+  opacity: 0.22;
+}
+
+[data-playing="true"] .heartbeat-bar {
+  animation: heartbeatBar 2.4s ease-in-out infinite;
+  animation-delay: var(--delay);
+}
+
+/* =========================================
+   ALONE 3AM - SOFT HEARTBEAT PLAY BUTTON
+========================================= */
+
+@keyframes alone3amHeartbeat {
+  0% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(255, 255, 255, 0.00),
+      0 0 12px rgba(255, 255, 255, 0.08);
+  }
+
+  18% {
+    transform: scale(1.035);
+    box-shadow:
+      0 0 0 8px rgba(255, 255, 255, 0.05),
+      0 0 32px rgba(255, 255, 255, 0.22);
+  }
+
+  32% {
+    transform: scale(1.01);
+    box-shadow:
+      0 0 0 3px rgba(255, 255, 255, 0.025),
+      0 0 18px rgba(255, 255, 255, 0.12);
+  }
+
+  48% {
+    transform: scale(1.025);
+    box-shadow:
+      0 0 0 6px rgba(255, 255, 255, 0.035),
+      0 0 27px rgba(255, 255, 255, 0.18);
+  }
+
+  65% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.015),
+      0 0 14px rgba(255, 255, 255, 0.08);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(255, 255, 255, 0),
+      0 0 10px rgba(255, 255, 255, 0.05);
+  }
+}
+
+
+/* -----------------------------------------
+   BUTTON
+----------------------------------------- */
+
+.play-heartbeat {
+  position: relative;
+
+  transition:
+    transform 0.5s ease,
+    box-shadow 0.5s ease;
+}
+
+
+/* -----------------------------------------
+   OUTER SOFT GLOW
+----------------------------------------- */
+
+.play-heartbeat::before {
+  content: "";
+
+  position: absolute;
+
+  inset: -10px;
+
+  border-radius: 9999px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  filter: blur(14px);
+
+  opacity: 0;
+
+  transform: scale(0.8);
+
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s ease;
+}
+
+
+/* -----------------------------------------
+   PLAYING STATE
+----------------------------------------- */
+
+.play-heartbeat.is-playing {
+  animation:
+    alone3amHeartbeat 2.8s ease-in-out infinite;
+
+  z-index: 1;
+}
+
+
+.play-heartbeat.is-playing::before {
+  opacity: 0.75;
+
+  transform: scale(1);
+
+  animation:
+    alone3amGlow 2.8s ease-in-out infinite;
+}
+
+
+/* -----------------------------------------
+   GLOW PULSE
+----------------------------------------- */
+
+@keyframes alone3amGlow {
+
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+
+  20% {
+    opacity: 0.75;
+    transform: scale(1.12);
+  }
+
+  35% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.06);
+  }
+
+  70% {
+    opacity: 0.25;
+    transform: scale(0.9);
+  }
+}
+
+
+/* -----------------------------------------
+   ICON
+----------------------------------------- */
+
+.play-icon {
+  position: relative;
+
+  z-index: 2;
+
+  transition:
+    filter 0.8s ease,
+    opacity 0.8s ease;
+}
+
+
+/* -----------------------------------------
+   ICON GLOW WHILE PLAYING
+----------------------------------------- */
+
+.play-heartbeat.is-playing .play-icon {
+  animation:
+    alone3amIconGlow 2.8s ease-in-out infinite;
+}
+
+
+@keyframes alone3amIconGlow {
+
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 2px rgba(255, 255, 255, 0.15));
+  }
+
+  20% {
+    filter:
+      drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 13px rgba(255, 255, 255, 0.4));
+  }
+
+  35% {
+    filter:
+      drop-shadow(0 0 3px rgba(255, 255, 255, 0.35));
+  }
+
+  50% {
+    filter:
+      drop-shadow(0 0 5px rgba(255, 255, 255, 0.65)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+  }
+}
+
+
+/* -----------------------------------------
+   PAUSED
+----------------------------------------- */
+
+.play-heartbeat:not(.is-playing) {
+  box-shadow:
+    0 0 10px rgba(255, 255, 255, 0.04);
+}
+
+.play-heartbeat:not(.is-playing)::before {
+  opacity: 0;
+}
+
+.play-heartbeat:not(.is-playing) .play-icon {
+  filter: none;
 }
