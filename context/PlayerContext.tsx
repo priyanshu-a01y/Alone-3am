@@ -8,8 +8,6 @@ import {
     useState,
 } from "react";
 
-import { songs } from "@/data/song";
-
 type Song = {
     src: string;
     mood: string;
@@ -31,6 +29,30 @@ type PlayerContextType = {
     volume: number;
     setVolume: (value: number) => void;
 };
+
+/* ----------------------------------
+   SETTINGS
+---------------------------------- */
+
+const CROSSFADE_SECONDS = 7;
+const FADE_INTERVAL = 50;
+
+/* ----------------------------------
+   SONGS
+   Actual names are intentionally hidden.
+---------------------------------- */
+
+const songs: Song[] = Array.from(
+    { length: 96 },
+    (_, index) => ({
+        src: `/music/${index + 1}.mp3`,
+        mood: `Track ${String(index + 1).padStart(2, "0")}`,
+    })
+);
+
+/* ----------------------------------
+   CONTEXT
+---------------------------------- */
 
 const PlayerContext =
     createContext<PlayerContextType | null>(null);
@@ -59,13 +81,31 @@ function shuffleArray(length: number) {
     return array;
 }
 
+/* ----------------------------------
+   PROVIDER
+---------------------------------- */
+
 export function PlayerProvider({
     children,
 }: {
     children: React.ReactNode;
 }) {
-    const audioRef =
+    /* ----------------------------------
+       TWO AUDIO DECKS
+    ---------------------------------- */
+
+    const audioARef =
         useRef<HTMLAudioElement>(null);
+
+    const audioBRef =
+        useRef<HTMLAudioElement>(null);
+
+    const activeDeckRef =
+        useRef<"A" | "B">("A");
+
+    /* ----------------------------------
+       PLAYLIST
+    ---------------------------------- */
 
     const playlistRef =
         useRef<number[]>([]);
@@ -79,8 +119,23 @@ export function PlayerProvider({
     const shouldPlayRef =
         useRef(false);
 
+    const crossfadingRef =
+        useRef(false);
+
+    const fadeTimerRef =
+        useRef<ReturnType<typeof setInterval> | null>(
+            null
+        );
+
+    /* ----------------------------------
+       STATE
+    ---------------------------------- */
+
     const [index, setIndex] =
         useState(0);
+
+    const indexRef =
+        useRef(0);
 
     const [isPlaying, setIsPlaying] =
         useState(false);
@@ -94,15 +149,56 @@ export function PlayerProvider({
     const [volume, setVolumeState] =
         useState(0.7);
 
+    const volumeRef =
+        useRef(0.7);
+
     const currentSong =
         songs[index];
+
+    /* ----------------------------------
+       HELPERS
+    ---------------------------------- */
+
+    const getActiveAudio = () => {
+        return activeDeckRef.current === "A"
+            ? audioARef.current
+            : audioBRef.current;
+    };
+
+    const getInactiveAudio = () => {
+        return activeDeckRef.current === "A"
+            ? audioBRef.current
+            : audioARef.current;
+    };
+
+    const stopFadeTimer = () => {
+        if (fadeTimerRef.current) {
+            clearInterval(
+                fadeTimerRef.current
+            );
+
+            fadeTimerRef.current = null;
+        }
+    };
+
+    const setDeckVolume = (
+        audio: HTMLAudioElement,
+        value: number
+    ) => {
+        audio.volume = Math.max(
+            0,
+            Math.min(1, value)
+        );
+    };
 
     /* ----------------------------------
        INITIALIZE PLAYLIST
     ---------------------------------- */
 
     useEffect(() => {
-        if (initializedRef.current) return;
+        if (initializedRef.current) {
+            return;
+        }
 
         initializedRef.current = true;
 
@@ -114,53 +210,98 @@ export function PlayerProvider({
 
         positionRef.current = 0;
 
-        setIndex(playlist[0]);
+        const firstIndex =
+            playlist[0] ?? 0;
+
+        indexRef.current =
+            firstIndex;
+
+        setIndex(firstIndex);
     }, []);
 
     /* ----------------------------------
-       LOAD SONG
+       LOAD CURRENT SONG
     ---------------------------------- */
 
     useEffect(() => {
-        const audio =
-            audioRef.current;
+        const audioA =
+            audioARef.current;
 
-        if (!audio) return;
+        const audioB =
+            audioBRef.current;
+
+        if (!audioA || !audioB) {
+            return;
+        }
+
+        stopFadeTimer();
+
+        crossfadingRef.current =
+            false;
+
+        audioA.pause();
+        audioB.pause();
+
+        audioA.currentTime = 0;
+        audioB.currentTime = 0;
 
         const src =
             songs[index]?.src;
 
-        if (!src) return;
+        if (!src) {
+            return;
+        }
 
-        audio.pause();
+        /*
+         * Always load the current song
+         * into the active deck.
+         */
+        const activeAudio =
+            activeDeckRef.current === "A"
+                ? audioA
+                : audioB;
 
-        setIsPlaying(false);
+        const inactiveAudio =
+            activeDeckRef.current === "A"
+                ? audioB
+                : audioA;
+
+        activeAudio.src = src;
+        activeAudio.load();
+
+        inactiveAudio.removeAttribute(
+            "src"
+        );
+
+        inactiveAudio.load();
+
+        setDeckVolume(
+            activeAudio,
+            volumeRef.current
+        );
+
+        setDeckVolume(
+            inactiveAudio,
+            0
+        );
+
         setCurrentTime(0);
         setDuration(0);
 
-        audio.src = src;
-        audio.volume = volume;
-
         /*
-         * load() starts loading the new
-         * audio without waiting for
-         * duration before play().
+         * If Next / Previous was pressed
+         * while music was playing,
+         * continue playing the new song.
          */
-        audio.load();
-
         if (shouldPlayRef.current) {
-            shouldPlayRef.current = false;
+            shouldPlayRef.current =
+                false;
 
-            /*
-             * Calling play immediately after
-             * changing the source allows the
-             * browser to handle loading itself.
-             */
-            const promise =
-                audio.play();
+            const playPromise =
+                activeAudio.play();
 
-            if (promise) {
-                promise
+            if (playPromise) {
+                playPromise
                     .then(() => {
                         setIsPlaying(true);
                     })
@@ -170,7 +311,7 @@ export function PlayerProvider({
                             "AbortError"
                         ) {
                             console.error(
-                                "Next song play error:",
+                                "Audio play error:",
                                 error
                             );
                         }
@@ -186,38 +327,36 @@ export function PlayerProvider({
     ---------------------------------- */
 
     useEffect(() => {
-        const audio =
-            audioRef.current;
+        const audioA =
+            audioARef.current;
 
-        if (!audio) return;
+        const audioB =
+            audioBRef.current;
 
-        const handleTimeUpdate = () => {
+        if (!audioA || !audioB) {
+            return;
+        }
+
+        const updateTime = () => {
+            const audio =
+                getActiveAudio();
+
+            if (!audio) {
+                return;
+            }
+
             setCurrentTime(
                 audio.currentTime || 0
             );
-        };
 
-        const handleLoadedMetadata = () => {
             if (
-                Number.isFinite(audio.duration)
+                Number.isFinite(
+                    audio.duration
+                )
             ) {
-                setDuration(audio.duration);
-            }
-        };
-
-        const handleDurationChange = () => {
-            if (
-                Number.isFinite(audio.duration)
-            ) {
-                setDuration(audio.duration);
-            }
-        };
-
-        const handleLoadedData = () => {
-            if (
-                Number.isFinite(audio.duration)
-            ) {
-                setDuration(audio.duration);
+                setDuration(
+                    audio.duration
+                );
             }
         };
 
@@ -226,80 +365,158 @@ export function PlayerProvider({
         };
 
         const handlePause = () => {
-            setIsPlaying(false);
+            /*
+             * During crossfade the old deck
+             * pauses intentionally.
+             *
+             * Do not change React state here
+             * if the other deck is still playing.
+             */
+            const active =
+                getActiveAudio();
+
+            if (
+                active &&
+                !active.paused
+            ) {
+                return;
+            }
+
+            if (
+                !crossfadingRef.current
+            ) {
+                setIsPlaying(false);
+            }
+        };
+
+        const handleLoadedMetadata = () => {
+            const active =
+                getActiveAudio();
+
+            if (
+                active &&
+                Number.isFinite(
+                    active.duration
+                )
+            ) {
+                setDuration(
+                    active.duration
+                );
+            }
         };
 
         const handleEnded = () => {
+            /*
+             * Crossfade normally changes
+             * the song before the actual
+             * ended event.
+             */
+            if (
+                crossfadingRef.current
+            ) {
+                return;
+            }
+
             nextSong();
         };
 
-        audio.addEventListener(
+        audioA.addEventListener(
             "timeupdate",
-            handleTimeUpdate
+            updateTime
         );
 
-        audio.addEventListener(
-            "loadedmetadata",
-            handleLoadedMetadata
+        audioB.addEventListener(
+            "timeupdate",
+            updateTime
         );
 
-        audio.addEventListener(
-            "durationchange",
-            handleDurationChange
-        );
-
-        audio.addEventListener(
-            "loadeddata",
-            handleLoadedData
-        );
-
-        audio.addEventListener(
+        audioA.addEventListener(
             "play",
             handlePlay
         );
 
-        audio.addEventListener(
+        audioB.addEventListener(
+            "play",
+            handlePlay
+        );
+
+        audioA.addEventListener(
             "pause",
             handlePause
         );
 
-        audio.addEventListener(
+        audioB.addEventListener(
+            "pause",
+            handlePause
+        );
+
+        audioA.addEventListener(
+            "loadedmetadata",
+            handleLoadedMetadata
+        );
+
+        audioB.addEventListener(
+            "loadedmetadata",
+            handleLoadedMetadata
+        );
+
+        audioA.addEventListener(
+            "ended",
+            handleEnded
+        );
+
+        audioB.addEventListener(
             "ended",
             handleEnded
         );
 
         return () => {
-            audio.removeEventListener(
+            audioA.removeEventListener(
                 "timeupdate",
-                handleTimeUpdate
+                updateTime
             );
 
-            audio.removeEventListener(
-                "loadedmetadata",
-                handleLoadedMetadata
+            audioB.removeEventListener(
+                "timeupdate",
+                updateTime
             );
 
-            audio.removeEventListener(
-                "durationchange",
-                handleDurationChange
-            );
-
-            audio.removeEventListener(
-                "loadeddata",
-                handleLoadedData
-            );
-
-            audio.removeEventListener(
+            audioA.removeEventListener(
                 "play",
                 handlePlay
             );
 
-            audio.removeEventListener(
+            audioB.removeEventListener(
+                "play",
+                handlePlay
+            );
+
+            audioA.removeEventListener(
                 "pause",
                 handlePause
             );
 
-            audio.removeEventListener(
+            audioB.removeEventListener(
+                "pause",
+                handlePause
+            );
+
+            audioA.removeEventListener(
+                "loadedmetadata",
+                handleLoadedMetadata
+            );
+
+            audioB.removeEventListener(
+                "loadedmetadata",
+                handleLoadedMetadata
+            );
+
+            audioA.removeEventListener(
+                "ended",
+                handleEnded
+            );
+
+            audioB.removeEventListener(
                 "ended",
                 handleEnded
             );
@@ -308,65 +525,257 @@ export function PlayerProvider({
 
     /* ----------------------------------
        VOLUME
-  
-       IMPORTANT:
-       Changing volume must NOT reload
+
+       Changing volume NEVER reloads
        the audio.
     ---------------------------------- */
 
     useEffect(() => {
-        const audio =
-            audioRef.current;
+        volumeRef.current =
+            volume;
 
-        if (!audio) return;
+        const active =
+            getActiveAudio();
 
-        audio.volume = volume;
+        if (!active) {
+            return;
+        }
+
+        /*
+         * Only change the currently
+         * audible deck.
+         */
+        if (
+            !crossfadingRef.current
+        ) {
+            setDeckVolume(
+                active,
+                volume
+            );
+        }
     }, [volume]);
 
     /* ----------------------------------
-       PLAY / PAUSE
+       CROSSFADE
     ---------------------------------- */
 
-    const togglePlay = async () => {
-        const audio =
-            audioRef.current;
+    const crossfadeTo = (
+        nextIndex: number,
+        continuePlaying: boolean
+    ) => {
+        const active =
+            getActiveAudio();
 
-        if (!audio) return;
+        const incoming =
+            getInactiveAudio();
 
-        try {
-            if (audio.paused) {
-                await audio.play();
-
-                setIsPlaying(true);
-            } else {
-                audio.pause();
-
-                setIsPlaying(false);
-            }
-        } catch (error) {
-            if (
-                error instanceof DOMException &&
-                error.name === "AbortError"
-            ) {
-                return;
-            }
-
-            console.error(
-                "Play/Pause error:",
-                error
-            );
+        if (!active || !incoming) {
+            return;
         }
+
+        stopFadeTimer();
+
+        /*
+         * If paused, simply load the next
+         * song without starting playback.
+         */
+        if (!continuePlaying) {
+            active.pause();
+            incoming.pause();
+
+            incoming.src =
+                songs[nextIndex].src;
+
+            incoming.load();
+
+            setDeckVolume(
+                incoming,
+                volumeRef.current
+            );
+
+            activeDeckRef.current =
+                activeDeckRef.current === "A"
+                    ? "B"
+                    : "A";
+
+            const newActive =
+                getActiveAudio();
+
+            if (newActive) {
+                newActive.pause();
+                setDeckVolume(
+                    newActive,
+                    volumeRef.current
+                );
+            }
+
+            setIndex(nextIndex);
+            indexRef.current =
+                nextIndex;
+
+            setCurrentTime(0);
+            setDuration(0);
+
+            return;
+        }
+
+        /*
+         * Prepare incoming song.
+         */
+        incoming.src =
+            songs[nextIndex].src;
+
+        incoming.load();
+
+        setDeckVolume(
+            incoming,
+            0
+        );
+
+        crossfadingRef.current =
+            true;
+
+        /*
+         * Start incoming song.
+         *
+         * Browser autoplay permission is
+         * already granted because the user
+         * is currently playing audio.
+         */
+        const incomingPlay =
+            incoming.play();
+
+        if (incomingPlay) {
+            incomingPlay.catch((error) => {
+                console.error(
+                    "Crossfade play error:",
+                    error
+                );
+
+                crossfadingRef.current =
+                    false;
+            });
+        }
+
+        const fadeDuration =
+            Math.min(
+                CROSSFADE_SECONDS,
+                Number.isFinite(
+                    active.duration
+                ) &&
+                    active.duration > 0
+                    ? active.duration
+                    : CROSSFADE_SECONDS
+            );
+
+        const steps = Math.max(
+            1,
+            Math.ceil(
+                (fadeDuration * 1000) /
+                FADE_INTERVAL
+            )
+        );
+
+        let step = 0;
+
+        fadeTimerRef.current =
+            setInterval(() => {
+                step++;
+
+                const progress =
+                    Math.min(
+                        1,
+                        step / steps
+                    );
+
+                const masterVolume =
+                    volumeRef.current;
+
+                /*
+                 * Smooth linear crossfade.
+                 */
+                const outgoingVolume =
+                    masterVolume *
+                    (1 - progress);
+
+                const incomingVolume =
+                    masterVolume *
+                    progress;
+
+                setDeckVolume(
+                    active,
+                    outgoingVolume
+                );
+
+                setDeckVolume(
+                    incoming,
+                    incomingVolume
+                );
+
+                if (progress >= 1) {
+                    stopFadeTimer();
+
+                    active.pause();
+
+                    active.currentTime = 0;
+
+                    setDeckVolume(
+                        active,
+                        0
+                    );
+
+                    setDeckVolume(
+                        incoming,
+                        masterVolume
+                    );
+
+                    activeDeckRef.current =
+                        activeDeckRef.current ===
+                            "A"
+                            ? "B"
+                            : "A";
+
+                    positionRef.current =
+                        positionRef.current;
+
+                    indexRef.current =
+                        nextIndex;
+
+                    setIndex(nextIndex);
+
+                    setIsPlaying(true);
+
+                    setCurrentTime(
+                        incoming.currentTime
+                    );
+
+                    if (
+                        Number.isFinite(
+                            incoming.duration
+                        )
+                    ) {
+                        setDuration(
+                            incoming.duration
+                        );
+                    }
+
+                    crossfadingRef.current =
+                        false;
+                }
+            }, FADE_INTERVAL);
     };
 
     /* ----------------------------------
-       NEXT
+       FIND NEXT POSITION
     ---------------------------------- */
 
-    const nextSong = () => {
+    const getNextPosition = () => {
         const playlist =
             playlistRef.current;
 
-        if (!playlist.length) return;
+        if (!playlist.length) {
+            return null;
+        }
 
         let nextPosition =
             positionRef.current + 1;
@@ -381,11 +790,10 @@ export function PlayerProvider({
                 ];
 
             const newPlaylist =
-                shuffleArray(songs.length);
+                shuffleArray(
+                    songs.length
+                );
 
-            /*
-             * Prevent immediate repeat.
-             */
             if (
                 newPlaylist.length > 1 &&
                 newPlaylist[0] === oldSong
@@ -405,6 +813,36 @@ export function PlayerProvider({
             nextPosition = 0;
         }
 
+        return nextPosition;
+    };
+
+    /* ----------------------------------
+       NEXT
+    ---------------------------------- */
+
+    const nextSong = () => {
+        if (
+            crossfadingRef.current
+        ) {
+            return;
+        }
+
+        const playlist =
+            playlistRef.current;
+
+        if (!playlist.length) {
+            return;
+        }
+
+        const nextPosition =
+            getNextPosition();
+
+        if (
+            nextPosition === null
+        ) {
+            return;
+        }
+
         positionRef.current =
             nextPosition;
 
@@ -413,13 +851,21 @@ export function PlayerProvider({
             nextPosition
             ];
 
-        /*
-         * Next was manually pressed,
-         * therefore keep playing.
-         */
-        shouldPlayRef.current = true;
+        const currentlyPlaying =
+            !getActiveAudio()?.paused;
 
-        setIndex(nextIndex);
+        indexRef.current =
+            nextIndex;
+
+        /*
+         * Important:
+         * Do NOT setIndex before crossfade.
+         * The two audio decks need to overlap.
+         */
+        crossfadeTo(
+            nextIndex,
+            currentlyPlaying
+        );
     };
 
     /* ----------------------------------
@@ -427,10 +873,18 @@ export function PlayerProvider({
     ---------------------------------- */
 
     const prevSong = () => {
+        if (
+            crossfadingRef.current
+        ) {
+            return;
+        }
+
         const playlist =
             playlistRef.current;
 
-        if (!playlist.length) return;
+        if (!playlist.length) {
+            return;
+        }
 
         let previousPosition =
             positionRef.current - 1;
@@ -448,23 +902,76 @@ export function PlayerProvider({
             previousPosition
             ];
 
-        shouldPlayRef.current = true;
+        const currentlyPlaying =
+            !getActiveAudio()?.paused;
 
-        setIndex(previousIndex);
+        indexRef.current =
+            previousIndex;
+
+        crossfadeTo(
+            previousIndex,
+            currentlyPlaying
+        );
     };
+
+    /* ----------------------------------
+       PLAY / PAUSE
+    ---------------------------------- */
+
+    const togglePlay =
+        async () => {
+            const audio =
+                getActiveAudio();
+
+            if (!audio) {
+                return;
+            }
+
+            try {
+                if (audio.paused) {
+                    await audio.play();
+
+                    setIsPlaying(true);
+                } else {
+                    audio.pause();
+
+                    setIsPlaying(false);
+                }
+            } catch (error) {
+                if (
+                    error instanceof
+                    DOMException &&
+                    error.name ===
+                    "AbortError"
+                ) {
+                    return;
+                }
+
+                console.error(
+                    "Play/Pause error:",
+                    error
+                );
+            }
+        };
 
     /* ----------------------------------
        SEEK
     ---------------------------------- */
 
-    const seek = (value: number) => {
+    const seek = (
+        value: number
+    ) => {
         const audio =
-            audioRef.current;
+            getActiveAudio();
 
-        if (!audio) return;
+        if (!audio) {
+            return;
+        }
 
         if (
-            !Number.isFinite(audio.duration) ||
+            !Number.isFinite(
+                audio.duration
+            ) ||
             audio.duration <= 0
         ) {
             return;
@@ -486,6 +993,19 @@ export function PlayerProvider({
             safeValue
         );
     };
+
+    /* ----------------------------------
+       CLEANUP
+    ---------------------------------- */
+
+    useEffect(() => {
+        return () => {
+            stopFadeTimer();
+
+            audioARef.current?.pause();
+            audioBRef.current?.pause();
+        };
+    }, []);
 
     /* ----------------------------------
        PROVIDER
@@ -513,9 +1033,17 @@ export function PlayerProvider({
         >
             {children}
 
+            {/* AUDIO DECK A */}
             <audio
-                ref={audioRef}
-                data-alone-player="true"
+                ref={audioARef}
+                data-alone-player="A"
+                preload="metadata"
+            />
+
+            {/* AUDIO DECK B */}
+            <audio
+                ref={audioBRef}
+                data-alone-player="B"
                 preload="metadata"
             />
         </PlayerContext.Provider>

@@ -2,17 +2,24 @@ import MusicCard from "@/components/MusicCard";
 
 export default function PlayerPage() {
     return (
-        <main
-            className="relative min-h-screen overflow-hidden bg-cover bg-center px-6 pb-40 pt-44 text-white"
-            style={{
-                backgroundImage: "url('/quotes-bg.jpg')",
-            }}
-        >
-            {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/75" />
+        <main className="relative min-h-screen overflow-hidden px-6 pb-40 pt-44 text-white">
 
-            {/* Soft gradient */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/70 to-black" />
+            {/* BACKGROUND VIDEO */}
+            <video
+                className="fixed inset-0 -z-20 h-full w-full object-cover"
+                src="/video/video.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
+            />
+
+            {/* Dark overlay */}
+            <div className="fixed inset-0 -z-10 bg-black/65" />
+
+            {/* Cinematic gradient */}
+            <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/65 to-black" />
 
             {/* Content */}
             <div className="relative z-10 mx-auto max-w-6xl">
