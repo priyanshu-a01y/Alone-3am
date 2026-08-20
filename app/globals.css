@@ -1,7 +1,8 @@
+@import "tailwindcss";
+
 /* =========================================================
    ALONE 3AM — GEN Z HOME EXPERIENCE
 ========================================================= */
-
 .home-page {
   isolation: isolate;
 }
