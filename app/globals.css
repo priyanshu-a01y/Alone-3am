@@ -556,3 +556,84 @@ body {
 .play-heartbeat:not(.is-playing) .play-icon {
   filter: none;
 }
+
+/* =========================================
+   ALONE 3AM PREMIUM PLAYER
+========================================= */
+
+.premium-range {
+  height: 3px;
+  appearance: none;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.premium-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+  box-shadow: 0 0 15px rgba(255, 255, 255, .25);
+}
+
+.premium-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  border: none;
+}
+
+.control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .025);
+  color: rgba(255, 255, 255, .65);
+  transition: all .25s ease;
+}
+
+.control-button:hover {
+  background: rgba(255, 255, 255, .1);
+  color: white;
+  transform: scale(1.06);
+}
+
+.control-button:active {
+  transform: scale(.94);
+}
+
+.play-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  border: none;
+  background: white;
+  color: black;
+  font-size: 22px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .15),
+    0 0 50px rgba(255, 255, 255, .15);
+  transition: all .3s ease;
+}
+
+.play-button:hover {
+  transform: scale(1.06);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, .2),
+    0 0 70px rgba(255, 255, 255, .22);
+}
+
+.play-button:active {
+  transform: scale(.94);
+}

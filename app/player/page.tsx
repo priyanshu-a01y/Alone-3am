@@ -1,12 +1,20 @@
+"use client";
+
 import MusicCard from "@/components/MusicCard";
 
 export default function PlayerPage() {
     return (
-        <main className="relative min-h-screen overflow-hidden px-6 pb-40 pt-44 text-white">
+        <main className="relative min-h-screen overflow-hidden bg-black text-white">
 
             {/* BACKGROUND VIDEO */}
+
             <video
-                className="fixed inset-0 -z-20 h-full w-full object-cover"
+                className="
+                    fixed inset-0
+                    -z-30
+                    h-full w-full
+                    object-cover
+                "
                 src="/video/video.mp4"
                 autoPlay
                 muted
@@ -15,40 +23,75 @@ export default function PlayerPage() {
                 preload="auto"
             />
 
-            {/* Dark overlay */}
-            <div className="fixed inset-0 -z-10 bg-black/65" />
+            {/* VIDEO DARKNESS */}
 
-            {/* Cinematic gradient */}
-            <div className="fixed inset-0 -z-10 bg-gradient-to-b from-black/40 via-black/65 to-black" />
+            <div className="fixed inset-0 -z-20 bg-black/70" />
 
-            {/* Content */}
-            <div className="relative z-10 mx-auto max-w-6xl">
+            {/* CINEMATIC GRADIENT */}
 
-                <p
-                    className="text-sm tracking-[0.45em] text-white/40"
-                    style={{
-                        fontFamily:
-                            "'Noto Serif Devanagari', 'Nirmala UI', serif",
-                    }}
-                >
-                    रात का संगीत
-                </p>
+            <div className="
+                fixed inset-0 -z-20
+                bg-gradient-to-b
+                from-black/80
+                via-black/55
+                to-black
+            " />
 
-                <h1
-                    className="mt-3 text-7xl font-bold text-white md:text-9xl"
-                    style={{
-                        fontFamily:
-                            "'Noto Serif Devanagari', 'Nirmala UI', serif",
-                    }}
-                >
-                    सुनो।
-                </h1>
+            {/* CONTENT */}
 
-                <p className="mt-5 max-w-lg text-base text-white/50">
-                    Close your eyes.
-                    <br />
-                    Let the night play.
-                </p>
+            <div className="
+                relative z-10
+                mx-auto
+                flex min-h-screen
+                w-full max-w-6xl
+                flex-col
+                items-center
+                px-5
+                pb-32
+                pt-32
+                sm:px-8
+                sm:pt-36
+            ">
+
+                {/* HEADER */}
+
+                <header className="text-center">
+
+                    <p
+                        className="
+                            text-[10px]
+                            uppercase
+                            tracking-[0.55em]
+                            text-white/35
+                        "
+                    >
+                        रात का संगीत
+                    </p>
+
+                    <h1
+                        className="
+                            mt-2
+                            text-5xl
+                            font-medium
+                            leading-none
+                            text-white/95
+                            sm:text-7xl
+                        "
+                        style={{
+                            fontFamily:
+                                "'Noto Serif Devanagari', 'Nirmala UI', serif",
+                        }}
+                    >
+                        सुनो।
+                    </h1>
+
+                    <p className="mt-3 text-xs text-white/30 sm:text-sm">
+                        Close your eyes. Let the night play.
+                    </p>
+
+                </header>
+
+                {/* PLAYER */}
 
                 <MusicCard />
 

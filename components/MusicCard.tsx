@@ -2,359 +2,247 @@
 
 import { usePlayer } from "@/context/PlayerContext";
 
+function formatTime(seconds: number) {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+        return "0:00";
+    }
+
+    const minutes = Math.floor(seconds / 60);
+    const remaining = Math.floor(seconds % 60);
+
+    return `${minutes}:${remaining
+        .toString()
+        .padStart(2, "0")}`;
+}
+
+function Vinyl({ isPlaying }: { isPlaying: boolean }) {
+    return (
+        <div className="relative mx-auto h-52 w-52 sm:h-60 sm:w-60">
+
+            <div
+                className={`
+                    absolute inset-0 rounded-full
+                    bg-[radial-gradient(circle,#111_0%,#050505_55%,#000_100%)]
+                    shadow-[0_0_80px_rgba(255,255,255,0.08)]
+                    ${isPlaying ? "animate-[spin_10s_linear_infinite]" : ""}
+                `}
+            />
+
+            <div className="absolute inset-3 rounded-full border border-white/[0.05]" />
+            <div className="absolute inset-7 rounded-full border border-white/[0.05]" />
+            <div className="absolute inset-11 rounded-full border border-white/[0.05]" />
+            <div className="absolute inset-15 rounded-full border border-white/[0.05]" />
+
+            <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-[0_0_35px_rgba(255,255,255,0.2)]">
+
+                <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black" />
+
+            </div>
+        </div>
+    );
+}
+
 export default function MusicCard() {
     const {
         isPlaying,
+        currentTime,
+        duration,
+        volume,
+
         togglePlay,
         nextSong,
         prevSong,
 
-        currentTime,
-        duration,
         seek,
-
-        volume,
         setVolume,
     } = usePlayer();
 
-    const formatTime = (time: number) => {
-        if (
-            !Number.isFinite(time) ||
-            time <= 0
-        ) {
-            return "0:00";
-        }
-
-        const minutes =
-            Math.floor(time / 60);
-
-        const seconds =
-            Math.floor(time % 60);
-
-        return `${minutes}:${seconds
-            .toString()
-            .padStart(2, "0")}`;
-    };
-
     return (
-        <section className="mt-14">
+        <section className="mx-auto mt-10 w-full max-w-4xl">
+
             <div
                 className="
-          mx-auto
-          max-w-5xl
-          rounded-[36px]
-          border
-          border-white/10
-          bg-white/[0.045]
-          p-6
-          backdrop-blur-2xl
-          sm:p-8
-          md:p-12
-        "
+                    relative overflow-hidden
+                    rounded-[36px]
+                    border border-white/[0.10]
+                    bg-black/55
+                    p-6
+                    shadow-[0_30px_100px_rgba(0,0,0,0.65)]
+                    backdrop-blur-2xl
+                    sm:p-10
+                "
             >
-                {/* VINYL */}
 
-                <div className="flex justify-center">
-                    <div
-                        className={`
-              relative
-              h-56
-              w-56
-              rounded-full
-              bg-[repeating-radial-gradient(circle,#111_0,#111_2px,#1c1c1c_3px,#111_5px)]
-              shadow-[0_0_80px_rgba(255,255,255,0.07)]
-              sm:h-64
-              sm:w-64
-              ${isPlaying
-                                ? "animate-spin"
-                                : ""
-                            }
-            `}
-                        style={{
-                            animationDuration:
-                                "12s",
-                        }}
-                    >
-                        <div className="absolute inset-8 rounded-full border border-white/[0.06]" />
+                {/* subtle glow */}
 
-                        <div className="absolute inset-12 rounded-full border border-white/[0.06]" />
+                <div className="pointer-events-none absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 rounded-full bg-white/[0.025] blur-3xl" />
 
-                        <div className="absolute inset-16 rounded-full border border-white/[0.07]" />
+                <div className="relative">
 
-                        <div className="absolute inset-20 rounded-full border border-white/10" />
+                    {/* Vinyl */}
 
-                        <div
-                            className="
-                absolute
-                left-1/2
-                top-1/2
-                h-8
-                w-8
-                -translate-x-1/2
-                -translate-y-1/2
-                rounded-full
-                bg-white
-                shadow-[0_0_25px_rgba(255,255,255,0.18)]
-              "
-                        />
-                    </div>
-                </div>
+                    <Vinyl isPlaying={isPlaying} />
 
-                {/* MESSAGE */}
+                    {/* Text */}
 
-                <div className="mt-12 text-center">
-                    <p
-                        className="
-              text-sm
-              tracking-[0.5em]
-              text-white/30
-            "
-                    >
-                        THE NIGHT IS YOURS
-                    </p>
+                    <div className="mt-8 text-center">
 
-                    <p
-                        className="
-              mt-4
-              text-2xl
-              text-white/65
-            "
-                        style={{
-                            fontFamily:
-                                "'Noto Serif Devanagari', 'Nirmala UI', serif",
-                        }}
-                    >
-                        बस सुनो।
-                    </p>
-                </div>
+                        <p className="text-[10px] uppercase tracking-[0.55em] text-white/30">
+                            THE NIGHT IS YOURS
+                        </p>
 
-                {/* PROGRESS */}
-
-                <div className="mt-12">
-                    <input
-                        type="range"
-                        min="0"
-                        max={duration > 0 ? duration : 1}
-                        step="0.1"
-                        value={
-                            duration > 0
-                                ? Math.min(
-                                    currentTime,
-                                    duration
-                                )
-                                : 0
-                        }
-                        onChange={(event) => {
-                            seek(
-                                Number(
-                                    event.target.value
-                                )
-                            );
-                        }}
-                        disabled={duration <= 0}
-                        aria-label="Song progress"
-                        className="
-              w-full
-              cursor-pointer
-              accent-white
-              disabled:cursor-not-allowed
-              disabled:opacity-30
-            "
-                    />
-
-                    <div
-                        className="
-              mt-2
-              flex
-              justify-between
-              text-xs
-              text-white/30
-            "
-                    >
-                        <span>
-                            {formatTime(currentTime)}
-                        </span>
-
-                        <span>
-                            {formatTime(duration)}
-                        </span>
-                    </div>
-                </div>
-
-                {/* CONTROLS */}
-
-                <div
-                    className="
-            mt-10
-            flex
-            items-center
-            justify-center
-            gap-4
-            sm:gap-6
-          "
-                >
-                    {/* PREVIOUS */}
-
-                    <button
-                        type="button"
-                        onClick={prevSong}
-                        aria-label="Previous"
-                        className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-white/10
-              bg-white/[0.04]
-              text-lg
-              text-white/60
-              transition-all
-              duration-300
-              hover:scale-105
-              hover:border-white/20
-              hover:bg-white/[0.09]
-              hover:text-white
-              sm:h-14
-              sm:w-14
-            "
-                    >
-                        ⏮
-                    </button>
-
-                    {/* PLAY */}
-
-                    <button
-                        type="button"
-                        onClick={togglePlay}
-                        aria-label={
-                            isPlaying
-                                ? "Pause"
-                                : "Play"
-                        }
-                        className={`
-              play-heartbeat
-              ${isPlaying
-                                ? "is-playing"
-                                : ""
-                            }
-              flex
-              h-18
-              w-18
-              items-center
-              justify-center
-              rounded-full
-              bg-white
-              text-black
-              transition-all
-              duration-500
-              hover:scale-105
-              active:scale-95
-              sm:h-20
-              sm:w-20
-            `}
-                    >
-                        <span
-                            className="
-                play-icon
-                text-xl
-                font-medium
-              "
+                        <h2
+                            className="mt-3 text-3xl text-white/90 sm:text-4xl"
+                            style={{
+                                fontFamily:
+                                    "'Noto Serif Devanagari', 'Nirmala UI', serif",
+                            }}
                         >
-                            {isPlaying
-                                ? "Ⅱ"
-                                : "▶"}
-                        </span>
-                    </button>
+                            बस सुनो।
+                        </h2>
 
-                    {/* NEXT */}
+                    </div>
 
-                    <button
-                        type="button"
-                        onClick={nextSong}
-                        aria-label="Next"
-                        className="
-              flex
-              h-12
-              w-12
-              items-center
-              justify-center
-              rounded-full
-              border
-              border-white/10
-              bg-white/[0.04]
-              text-lg
-              text-white/60
-              transition-all
-              duration-300
-              hover:scale-105
-              hover:border-white/20
-              hover:bg-white/[0.09]
-              hover:text-white
-              sm:h-14
-              sm:w-14
-            "
-                    >
-                        ⏭
-                    </button>
-                </div>
+                    {/* Progress */}
 
-                {/* VOLUME */}
+                    <div className="mt-9">
 
-                <div
-                    className="
-            mx-auto
-            mt-10
-            flex
-            max-w-xs
-            items-center
-            gap-4
-          "
-                >
-                    <span className="text-white/30">
-                        🔈
-                    </span>
-
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={volume}
-                        onChange={(event) => {
-                            setVolume(
-                                Number(
-                                    event.target.value
+                        <input
+                            type="range"
+                            min="0"
+                            max={duration || 0}
+                            step="0.1"
+                            value={Math.min(
+                                currentTime,
+                                duration || 0
+                            )}
+                            onChange={(e) =>
+                                seek(
+                                    Number(
+                                        e.target.value
+                                    )
                                 )
-                            );
-                        }}
-                        aria-label="Volume"
-                        className="
-              w-full
-              cursor-pointer
-              accent-white
-            "
-                    />
+                            }
+                            className="w-full accent-white"
+                        />
 
-                    <span className="text-white/30">
-                        🔊
-                    </span>
-                </div>
+                        <div className="mt-2 flex justify-between text-[11px] text-white/30">
+                            <span>
+                                {formatTime(currentTime)}
+                            </span>
 
-                {/* FOOTER */}
+                            <span>
+                                {formatTime(duration)}
+                            </span>
+                        </div>
 
-                <div className="mt-10 text-center">
-                    <p
-                        className="
-              text-[10px]
-              tracking-[0.45em]
-              text-white/20
-            "
-                    >
-                        3 AM • NO NAMES • JUST FEEL
+                    </div>
+
+                    {/* Main controls */}
+
+                    <div className="mt-8 flex items-center justify-center gap-7">
+
+                        <button
+                            type="button"
+                            onClick={prevSong}
+                            className="
+                                flex h-12 w-12
+                                items-center justify-center
+                                rounded-full
+                                border border-white/10
+                                bg-white/[0.03]
+                                text-white/60
+                                transition
+                                hover:bg-white/10
+                                hover:text-white
+                                active:scale-95
+                            "
+                            aria-label="Previous song"
+                        >
+                            ⏮
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={togglePlay}
+                            className="
+                                flex h-20 w-20
+                                items-center justify-center
+                                rounded-full
+                                bg-white
+                                text-black
+                                text-2xl
+                                shadow-[0_0_45px_rgba(255,255,255,0.15)]
+                                transition
+                                hover:scale-105
+                                active:scale-95
+                            "
+                            aria-label={
+                                isPlaying
+                                    ? "Pause"
+                                    : "Play"
+                            }
+                        >
+                            {isPlaying ? "Ⅱ" : "▶"}
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={nextSong}
+                            className="
+                                flex h-12 w-12
+                                items-center justify-center
+                                rounded-full
+                                border border-white/10
+                                bg-white/[0.03]
+                                text-white/60
+                                transition
+                                hover:bg-white/10
+                                hover:text-white
+                                active:scale-95
+                            "
+                            aria-label="Next song"
+                        >
+                            ⏭
+                        </button>
+
+                    </div>
+
+                    {/* Volume */}
+
+                    <div className="mx-auto mt-8 flex max-w-xs items-center gap-3">
+
+                        <span className="text-xs text-white/30">
+                            🔈
+                        </span>
+
+                        <input
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={volume}
+                            onChange={(e) =>
+                                setVolume(
+                                    Number(
+                                        e.target.value
+                                    )
+                                )
+                            }
+                            className="w-full accent-white"
+                            aria-label="Volume"
+                        />
+
+                        <span className="text-xs text-white/30">
+                            🔊
+                        </span>
+
+                    </div>
+
+                    <p className="mt-8 text-center text-[9px] uppercase tracking-[0.45em] text-white/15">
+                        ALONE 3AM · LISTEN IN THE DARK
                     </p>
+
                 </div>
             </div>
         </section>
