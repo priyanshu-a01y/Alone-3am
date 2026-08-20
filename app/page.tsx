@@ -4,47 +4,47 @@ import Navbar from "../components/Navbar";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+function getNightStatus() {
+  const hour = new Date().getHours();
+
+  if (hour >= 0 && hour < 4) return "AFTER MIDNIGHT";
+  if (hour >= 4 && hour < 7) return "BEFORE SUNRISE";
+  if (hour >= 19) return "LATE NIGHT";
+  return "THE NIGHT IS WAITING";
+}
+
 export default function Home() {
-  const [time, setTime] =
-    useState("");
+  const [time, setTime] = useState("");
+  const [status, setStatus] = useState("AFTER MIDNIGHT");
 
   useEffect(() => {
-    const updateTime = () => {
+    const update = () => {
+      const now = new Date();
+
       setTime(
-        new Date().toLocaleTimeString(
-          "en-IN",
-          {
-            hour: "2-digit",
-            minute: "2-digit",
-          }
-        )
-      );
-    };
-
-    updateTime();
-
-    const timer =
-      setInterval(
-        updateTime,
-        1000
+        now.toLocaleTimeString("en-IN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })
       );
 
-    return () => {
-      clearInterval(timer);
+      setStatus(getNightStatus());
     };
+
+    update();
+
+    const timer = setInterval(update, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
   return (
-    <main
-      className="
-        relative
-        min-h-[100svh]
-        overflow-hidden
-        bg-black
-        text-white
-      "
-    >
-      {/* BACKGROUND */}
+    <main className="home-page relative min-h-[100svh] overflow-hidden bg-black text-white">
+
+      {/* =====================================================
+          BACKGROUND
+      ===================================================== */}
 
       <div
         className="
@@ -53,87 +53,97 @@ export default function Home() {
           bg-cover
           bg-center
           bg-no-repeat
+          scale-[1.02]
         "
         style={{
-          backgroundImage:
-            "url('/quotes-bg.jpg')",
+          backgroundImage: "url('/quotes-bg.jpg')",
         }}
       />
 
-      {/* DARKNESS */}
+      {/* Main darkness */}
+      <div className="absolute inset-0 bg-black/62" />
 
+      {/* Cinematic gradient */}
       <div
         className="
-          pointer-events-none
-          absolute
-          inset-0
-          bg-black/65
-        "
-      />
-
-      {/* TOP / BOTTOM GRADIENT */}
-
-      <div
-        className="
-          pointer-events-none
           absolute
           inset-0
           bg-gradient-to-b
-          from-black/80
-          via-transparent
+          from-black/85
+          via-black/30
           to-black
         "
       />
 
-      {/* NIGHT LIGHT */}
+      {/* =====================================================
+          AMBIENT LIGHT
+      ===================================================== */}
 
       <div
         className="
           pointer-events-none
           absolute
-          inset-0
+          left-1/2
+          top-[34%]
+          h-[520px]
+          w-[520px]
+          -translate-x-1/2
+          -translate-y-1/2
+          rounded-full
+          bg-slate-400/[0.055]
+          blur-[120px]
         "
-        style={{
-          background:
-            "radial-gradient(circle at 50% 35%, rgba(45, 60, 100, 0.25), transparent 55%)",
-        }}
       />
 
-      {/* NAVBAR */}
+      <div
+        className="
+          pointer-events-none
+          absolute
+          right-[-120px]
+          top-[18%]
+          h-[360px]
+          w-[360px]
+          rounded-full
+          bg-indigo-400/[0.025]
+          blur-[100px]
+        "
+      />
+
+      {/* =====================================================
+          GRAIN
+      ===================================================== */}
+
+      <div className="noise-overlay pointer-events-none absolute inset-0 z-[1]" />
+
+      {/* =====================================================
+          NAVBAR
+      ===================================================== */}
 
       <div className="relative z-50">
         <Navbar />
       </div>
 
-      {/* STARS */}
+      {/* =====================================================
+          STARS
+      ===================================================== */}
 
-      <div
-        className="
-          pointer-events-none
-          absolute
-          inset-0
-          z-[2]
-        "
-      >
-        {Array.from({
-          length: 70,
-        }).map((_, i) => (
+      <div className="pointer-events-none absolute inset-0 z-[2]">
+        {Array.from({ length: 55 }).map((_, i) => (
           <span
             key={i}
             className="star"
             style={{
-              left:
-                `${(i * 47) % 100}%`,
-              top:
-                `${(i * 67) % 75}%`,
-              animationDelay:
-                `${(i % 6) * 0.5}s`,
+              left: `${(i * 47) % 100}%`,
+              top: `${(i * 67) % 78}%`,
+              animationDelay: `${(i % 6) * 0.5}s`,
             }}
           />
         ))}
       </div>
 
-      {/* HERO */}
+      {/* =====================================================
+          HERO
+      ===================================================== */}
 
       <section
         className="
@@ -144,209 +154,249 @@ export default function Home() {
           flex-col
           items-center
           justify-center
-          px-6
+          px-5
           pb-24
-          pt-28
+          pt-32
           text-center
         "
       >
-        {/* STATUS */}
 
-        <div
-          className="
-            mb-8
-            flex
-            items-center
-            gap-2
-            rounded-full
-            border
-            border-white/10
-            bg-black/30
-            px-4
-            py-2
-            backdrop-blur-md
-          "
-        >
-          <span
+        {/* =================================================
+            LIVE STATUS
+        ================================================= */}
+
+        <div className="night-status mb-8">
+
+          <span className="night-status-dot" />
+
+          <span>{status}</span>
+
+          <span className="night-status-line" />
+
+          <span className="hidden sm:inline">
+            ALONE 3AM
+          </span>
+
+        </div>
+
+        {/* =================================================
+            SMALL LABEL
+        ================================================= */}
+
+        <div className="mb-5 flex items-center gap-3">
+
+          <span className="h-px w-8 bg-white/10" />
+
+          <p className="text-[8px] uppercase tracking-[0.6em] text-white/25">
+            THE HOURS BETWEEN
+          </p>
+
+          <span className="h-px w-8 bg-white/10" />
+
+        </div>
+
+        {/* =================================================
+            MAIN TITLE
+        ================================================= */}
+
+        <div className="relative">
+
+          {/* subtle glow behind title */}
+
+          <div
             className="
-              h-1.5
-              w-1.5
-              animate-pulse
+              pointer-events-none
+              absolute
+              left-1/2
+              top-1/2
+              h-40
+              w-[420px]
+              -translate-x-1/2
+              -translate-y-1/2
               rounded-full
-              bg-white
-              shadow-[0_0_10px_white]
+              bg-white/[0.035]
+              blur-[70px]
             "
           />
 
-          <span
-            className="
-              text-[9px]
-              tracking-[0.3em]
-              text-white/45
-            "
-          >
-            THE NIGHT IS QUIET
-          </span>
+          <h1 className="home-title relative">
+
+            <span className="home-title-main">
+              ALONE
+            </span>
+
+            <span className="home-title-time">
+              3AM
+            </span>
+
+          </h1>
+
         </div>
 
-        {/* SMALL HEADING */}
+        {/* =================================================
+            TITLE LINE
+        ================================================= */}
 
-        <p
-          className="
-            mb-5
-            text-[9px]
-            uppercase
-            tracking-[0.5em]
-            text-white/25
-          "
-        >
-          AFTER MIDNIGHT
-        </p>
+        <div className="mt-6 flex items-center gap-3">
 
-        {/* TITLE */}
+          <span className="h-px w-12 bg-white/[0.08]" />
 
-        <h1
-          className="
-            home-title
-            text-5xl
-            font-black
-            tracking-[0.12em]
-            drop-shadow-[0_0_35px_rgba(255,255,255,0.25)]
-            sm:text-6xl
-            sm:tracking-[0.16em]
-            md:text-8xl
-          "
-        >
-          ALONE 3AM
-        </h1>
-
-        {/* DIVIDER */}
-
-        <div
-          className="
-            mt-7
-            flex
-            items-center
-            gap-4
-          "
-        >
-          <span className="h-px w-10 bg-white/10" />
-
-          <span
-            className="
-              text-[8px]
-              tracking-[0.45em]
-              text-white/20
-            "
-          >
-            THE HOURS BETWEEN
+          <span className="home-symbol">
+            ·
           </span>
 
-          <span className="h-px w-10 bg-white/10" />
+          <span className="h-px w-12 bg-white/[0.08]" />
+
         </div>
 
-        {/* TAGLINE */}
+        {/* =================================================
+            TAGLINE
+        ================================================= */}
 
-        <p
-          className="
-            mt-7
-            max-w-lg
-            text-sm
-            leading-7
-            text-white/55
-            md:text-base
-          "
-        >
+        <p className="mt-7 max-w-md text-sm leading-7 text-white/50 md:text-base">
+
           For anyone who finds peace
-          after midnight.
+          <br className="sm:hidden" />
+          {" "}after midnight.
+
         </p>
 
-        {/* BUTTONS */}
+        {/* =================================================
+            ACTIONS
+        ================================================= */}
 
         <div
           className="
             mt-10
             flex
+            w-full
+            max-w-[470px]
             flex-col
-            items-center
             gap-3
             sm:flex-row
           "
         >
+
+          {/* ENTER */}
+
           <Link
             href="/player"
             className="
+              group
+              relative
+              flex
+              flex-1
+              items-center
+              justify-center
+              overflow-hidden
               rounded-full
               border
               border-white/20
               bg-white/[0.08]
-              px-9
-              py-3.5
-              text-xs
-              tracking-[0.2em]
+              px-8
+              py-4
+              text-[10px]
+              font-medium
+              tracking-[0.28em]
               text-white/80
-              backdrop-blur-md
-              transition
+              backdrop-blur-xl
+              transition-all
               duration-500
-              hover:scale-105
               hover:border-white/40
               hover:bg-white
               hover:text-black
+              hover:shadow-[0_0_50px_rgba(255,255,255,0.10)]
             "
           >
-            ENTER THE NIGHT
+
+            <span className="relative z-10">
+              ENTER THE NIGHT
+            </span>
+
+            <span
+              className="
+                ml-3
+                translate-x-[-6px]
+                opacity-0
+                transition-all
+                duration-500
+                group-hover:translate-x-0
+                group-hover:opacity-100
+              "
+            >
+              →
+            </span>
+
           </Link>
+
+          {/* JOURNAL */}
 
           <Link
             href="/journal"
             className="
+              flex
+              flex-1
+              items-center
+              justify-center
               rounded-full
               border
-              border-white/10
-              bg-black/30
+              border-white/[0.10]
+              bg-black/25
               px-8
-              py-3.5
-              text-xs
-              tracking-[0.2em]
-              text-white/45
-              backdrop-blur-md
-              transition
+              py-4
+              text-[10px]
+              tracking-[0.28em]
+              text-white/40
+              backdrop-blur-xl
+              transition-all
               duration-500
-              hover:border-white/25
-              hover:bg-white/[0.08]
-              hover:text-white
+              hover:border-white/20
+              hover:bg-white/[0.06]
+              hover:text-white/75
             "
           >
             READ THE JOURNAL
           </Link>
+
         </div>
 
-        {/* TIME */}
-
-        <div className="mt-9">
-          <p
-            className="
-              text-[8px]
-              tracking-[0.55em]
-              text-white/20
-            "
-          >
+        {/* =================================================
             LOCAL TIME
-          </p>
+        ================================================= */}
 
-          <p
-            className="
-              mt-2
-              text-sm
-              tracking-[0.3em]
-              text-white/40
-            "
-          >
+        <div className="mt-10">
+
+          <div className="flex items-center justify-center gap-3">
+
+            <span className="h-px w-8 bg-white/[0.07]" />
+
+            <p className="text-[7px] uppercase tracking-[0.6em] text-white/20">
+              LOCAL TIME
+            </p>
+
+            <span className="h-px w-8 bg-white/[0.07]" />
+
+          </div>
+
+          <p className="home-time mt-3">
             {time}
           </p>
+
+          <div className="mt-2 flex items-center justify-center gap-2">
+
+            <span className="h-1 w-1 animate-pulse rounded-full bg-white/40" />
+
+            <span className="text-[7px] uppercase tracking-[0.4em] text-white/15">
+              YOU ARE HERE
+            </span>
+
+          </div>
+
         </div>
 
-        {/* BOTTOM HINT */}
+        {/* =================================================
+            BOTTOM HINT
+        ================================================= */}
 
         <div
           className="
@@ -356,31 +406,33 @@ export default function Home() {
             -translate-x-1/2
           "
         >
-          <p
-            className="
-              text-[8px]
-              tracking-[0.5em]
-              text-white/15
-            "
-          >
-            STAY A WHILE
-          </p>
 
-          <div
-            className="
-              mx-auto
-              mt-3
-              h-7
-              w-px
-              bg-gradient-to-b
-              from-white/20
-              to-transparent
-            "
-          />
+          <div className="flex flex-col items-center">
+
+            <p className="text-[7px] tracking-[0.55em] text-white/15">
+              STAY A WHILE
+            </p>
+
+            <div
+              className="
+                mt-3
+                h-8
+                w-px
+                bg-gradient-to-b
+                from-white/20
+                to-transparent
+              "
+            />
+
+          </div>
+
         </div>
+
       </section>
 
-      {/* RAIN */}
+      {/* =====================================================
+          RAIN
+      ===================================================== */}
 
       <div
         className="
@@ -388,11 +440,13 @@ export default function Home() {
           pointer-events-none
           fixed
           inset-0
-          z-20
+          z-[3]
         "
       />
 
-      {/* BOTTOM FADE */}
+      {/* =====================================================
+          BOTTOM VIGNETTE
+      ===================================================== */}
 
       <div
         className="
@@ -402,12 +456,14 @@ export default function Home() {
           left-0
           right-0
           z-30
-          h-32
+          h-40
           bg-gradient-to-t
           from-black
+          via-black/40
           to-transparent
         "
       />
+
     </main>
   );
 }

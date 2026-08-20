@@ -4,18 +4,12 @@ import MusicCard from "@/components/MusicCard";
 
 export default function PlayerPage() {
     return (
-        <main className="relative min-h-screen overflow-hidden bg-black text-white">
+        <main className="relative h-[100dvh] w-full overflow-hidden bg-black text-white">
 
             {/* BACKGROUND VIDEO */}
-
             <video
-                className="
-                    fixed inset-0
-                    -z-30
-                    h-full w-full
-                    object-cover
-                "
-                src="/video/video.mp4"
+                className="fixed inset-0 h-full w-full object-cover"
+                src="/video/night-01.mp4"
                 autoPlay
                 muted
                 loop
@@ -24,45 +18,33 @@ export default function PlayerPage() {
             />
 
             {/* VIDEO DARKNESS */}
+            <div className="fixed inset-0 bg-black/70" />
 
-            <div className="fixed inset-0 -z-20 bg-black/70" />
-
-            {/* CINEMATIC GRADIENT */}
-
-            <div className="
-                fixed inset-0 -z-20
-                bg-gradient-to-b
-                from-black/80
-                via-black/55
-                to-black
-            " />
+            {/* CINEMATIC VIGNETTE */}
+            <div
+                className="
+                    fixed inset-0
+                    bg-[radial-gradient(
+                        circle_at_center,
+                        rgba(20,20,25,0.15)_0%,
+                        rgba(0,0,0,0.55)_55%,
+                        rgba(0,0,0,0.95)_100%
+                    )]
+                "
+            />
 
             {/* CONTENT */}
-
-            <div className="
-                relative z-10
-                mx-auto
-                flex min-h-screen
-                w-full max-w-6xl
-                flex-col
-                items-center
-                px-5
-                pb-32
-                pt-32
-                sm:px-8
-                sm:pt-36
-            ">
+            <div className="relative z-10 flex h-full w-full flex-col">
 
                 {/* HEADER */}
-
-                <header className="text-center">
+                <div className="shrink-0 px-6 pt-7 text-center sm:pt-8">
 
                     <p
                         className="
-                            text-[10px]
+                            text-[8px]
                             uppercase
-                            tracking-[0.55em]
-                            text-white/35
+                            tracking-[0.65em]
+                            text-white/40
                         "
                     >
                         रात का संगीत
@@ -70,30 +52,33 @@ export default function PlayerPage() {
 
                     <h1
                         className="
-                            mt-2
+                            mt-1
                             text-5xl
                             font-medium
                             leading-none
-                            text-white/95
-                            sm:text-7xl
+                            text-white
+                            sm:text-6xl
                         "
                         style={{
                             fontFamily:
                                 "'Noto Serif Devanagari', 'Nirmala UI', serif",
                         }}
                     >
-                        सुनो।
+                        बस सुनो।
                     </h1>
 
-                    <p className="mt-3 text-xs text-white/30 sm:text-sm">
+                    <p className="mt-2 text-xs text-white/35">
                         Close your eyes. Let the night play.
                     </p>
 
-                </header>
+                </div>
 
-                {/* PLAYER */}
+                {/* PLAYER AREA */}
+                <div className="flex min-h-0 flex-1 items-center justify-center px-4 py-4 sm:px-8">
 
-                <MusicCard />
+                    <MusicCard />
+
+                </div>
 
             </div>
         </main>

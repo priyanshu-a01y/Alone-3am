@@ -2,11 +2,12 @@
 
 import {
     createContext,
+    ReactNode,
+    useCallback,
     useContext,
     useEffect,
     useRef,
     useState,
-    ReactNode,
 } from "react";
 
 type PlayerContextType = {
@@ -24,10 +25,11 @@ type PlayerContextType = {
     setVolume: (value: number) => void;
 };
 
-const PlayerContext = createContext<PlayerContextType | null>(null);
+const PlayerContext =
+    createContext<PlayerContextType | null>(null);
 
 const SONG_COUNT = 96;
-const FADE_TIME = 7;
+const CROSSFADE_SECONDS = 7;
 
 const getSongPath = (index: number) =>
     `/music/${index + 1}.mp3`;
@@ -37,43 +39,170 @@ export function PlayerProvider({
 }: {
     children: ReactNode;
 }) {
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+    /*
+     * -------------------------------------------------------
+     * AUDIO ENGINES
+     * -------------------------------------------------------
+     *
+     * We intentionally use TWO audio elements.
+     *
+     * A = current song
+     * B = next song
+     *
+     * During the final 7 seconds:
+     *
+     * A volume: 100% -> 0%
+     * B volume:   0% -> 100%
+     *
+     * This creates a real crossfade.
+     */
 
-    const fadeTimerRef = useRef<number | null>(null);
-    const switchingRef = useRef(false);
-    const mountedRef = useRef(false);
+    const audioARef =
+        useRef<HTMLAudioElement | null>(null);
 
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [volume, setVolumeState] = useState(0.8);
+    const audioBRef =
+        useRef<HTMLAudioElement | null>(null);
+
+    const activeSlotRef =
+        useRef<"A" | "B">("A");
+
+    const currentIndexRef =
+        useRef(0);
+
+    const volumeRef =
+        useRef(0.8);
+
+    const switchingRef =
+        useRef(false);
+
+    const crossfadeStartedRef =
+        useRef(false);
+
+    const mountedRef =
+        useRef(false);
+
+    const rafRef =
+        useRef<number | null>(null);
+
+    const [currentIndex, setCurrentIndex] =
+        useState(0);
+
+    const [isPlaying, setIsPlaying] =
+        useState(false);
+
+    const [currentTime, setCurrentTime] =
+        useState(0);
+
+    const [duration, setDuration] =
+        useState(0);
+
+    const [volume, setVolumeState] =
+        useState(0.8);
 
     /*
      * -------------------------------------------------------
-     * CREATE ONE AUDIO ELEMENT ONLY
+     * INITIAL SONG
+     * -------------------------------------------------------
+     *
+     * Refresh:
+     * last song -> next song
+     *
+     * So the same song doesn't start every time.
+     */
+
+    const getInitialIndex = () => {
+        if (typeof window === "undefined") {
+            return 0;
+        }
+
+        try {
+            const saved =
+                localStorage.getItem(
+                    "alone3am-last-song"
+                );
+
+            if (saved !== null) {
+                const last = Number(saved);
+
+                if (
+                    Number.isInteger(last) &&
+                    last >= 0 &&
+                    last < SONG_COUNT
+                ) {
+                    return (
+                        (last + 1) %
+                        SONG_COUNT
+                    );
+                }
+            }
+        } catch { }
+
+        return 0;
+    };
+
+    /*
+     * -------------------------------------------------------
+     * ACTIVE AUDIO
+     * -------------------------------------------------------
+     */
+
+    const getActiveAudio =
+        useCallback(() => {
+            return activeSlotRef.current === "A"
+                ? audioARef.current
+                : audioBRef.current;
+        }, []);
+
+    const getInactiveAudio =
+        useCallback(() => {
+            return activeSlotRef.current === "A"
+                ? audioBRef.current
+                : audioARef.current;
+        }, []);
+
+    /*
+     * -------------------------------------------------------
+     * CREATE AUDIO ELEMENTS
      * -------------------------------------------------------
      */
 
     useEffect(() => {
-        const audio = new Audio();
+        const audioA =
+            new Audio();
 
-        audio.preload = "auto";
-        audio.volume = 0.8;
+        const audioB =
+            new Audio();
 
-        audioRef.current = audio;
+        audioA.preload = "auto";
+        audioB.preload = "auto";
+
+        audioA.volume =
+            volumeRef.current;
+
+        audioB.volume = 0;
+
+        audioARef.current = audioA;
+        audioBRef.current = audioB;
+
         mountedRef.current = true;
 
         return () => {
             mountedRef.current = false;
 
-            if (fadeTimerRef.current) {
-                window.clearInterval(fadeTimerRef.current);
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(
+                    rafRef.current
+                );
             }
 
-            audio.pause();
-            audio.src = "";
-            audioRef.current = null;
+            audioA.pause();
+            audioB.pause();
+
+            audioA.src = "";
+            audioB.src = "";
+
+            audioARef.current = null;
+            audioBRef.current = null;
         };
     }, []);
 
@@ -84,49 +213,387 @@ export function PlayerProvider({
      */
 
     useEffect(() => {
-        const audio = audioRef.current;
+        const audio =
+            audioARef.current;
 
         if (!audio) return;
 
-        let savedIndex = 0;
+        const initialIndex =
+            getInitialIndex();
 
-        try {
-            const saved = localStorage.getItem(
-                "alone3am-last-song"
-            );
+        currentIndexRef.current =
+            initialIndex;
 
-            if (saved !== null) {
-                const parsed = Number(saved);
+        setCurrentIndex(
+            initialIndex
+        );
 
-                if (
-                    Number.isInteger(parsed) &&
-                    parsed >= 0 &&
-                    parsed < SONG_COUNT
-                ) {
-                    /*
-                     * Start from the NEXT song after refresh.
-                     * This prevents the same song every time.
-                     */
-                    savedIndex =
-                        (parsed + 1) % SONG_COUNT;
-                }
-            }
-        } catch {
-            savedIndex = 0;
-        }
+        audio.src =
+            getSongPath(initialIndex);
 
-        setCurrentIndex(savedIndex);
-
-        audio.src = getSongPath(savedIndex);
         audio.load();
 
         try {
             localStorage.setItem(
                 "alone3am-last-song",
-                String(savedIndex)
+                String(initialIndex)
             );
         } catch { }
     }, []);
+
+    /*
+     * -------------------------------------------------------
+     * UPDATE PLAYER UI
+     * -------------------------------------------------------
+     */
+
+    useEffect(() => {
+        const tick = () => {
+            if (!mountedRef.current) {
+                return;
+            }
+
+            const audio =
+                getActiveAudio();
+
+            if (audio) {
+                setCurrentTime(
+                    audio.currentTime || 0
+                );
+
+                if (
+                    Number.isFinite(
+                        audio.duration
+                    )
+                ) {
+                    setDuration(
+                        audio.duration
+                    );
+                }
+            }
+
+            rafRef.current =
+                requestAnimationFrame(tick);
+        };
+
+        rafRef.current =
+            requestAnimationFrame(tick);
+
+        return () => {
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(
+                    rafRef.current
+                );
+            }
+        };
+    }, [getActiveAudio]);
+
+    /*
+     * -------------------------------------------------------
+     * SAVE CURRENT SONG
+     * -------------------------------------------------------
+     */
+
+    const saveIndex = (
+        index: number
+    ) => {
+        currentIndexRef.current =
+            index;
+
+        setCurrentIndex(index);
+
+        try {
+            localStorage.setItem(
+                "alone3am-last-song",
+                String(index)
+            );
+        } catch { }
+    };
+
+    /*
+     * -------------------------------------------------------
+     * CROSSFADE
+     * -------------------------------------------------------
+     */
+
+    const crossfadeTo = useCallback(
+        async (
+            nextIndex: number
+        ) => {
+            if (
+                switchingRef.current ||
+                !mountedRef.current
+            ) {
+                return;
+            }
+
+            const current =
+                getActiveAudio();
+
+            const next =
+                getInactiveAudio();
+
+            if (!current || !next) {
+                return;
+            }
+
+            switchingRef.current = true;
+            crossfadeStartedRef.current = true;
+
+            try {
+                const targetVolume =
+                    volumeRef.current;
+
+                /*
+                 * Prepare next song.
+                 */
+
+                next.pause();
+                next.src =
+                    getSongPath(nextIndex);
+
+                next.currentTime = 0;
+                next.volume = 0;
+
+                /*
+                 * Load next track.
+                 */
+
+                next.load();
+
+                /*
+                 * Wait until browser has
+                 * enough information to play.
+                 */
+
+                await new Promise<void>(
+                    (resolve, reject) => {
+                        let finished = false;
+
+                        const cleanup = () => {
+                            next.removeEventListener(
+                                "canplay",
+                                onCanPlay
+                            );
+
+                            next.removeEventListener(
+                                "error",
+                                onError
+                            );
+                        };
+
+                        const onCanPlay =
+                            () => {
+                                if (finished)
+                                    return;
+
+                                finished = true;
+                                cleanup();
+                                resolve();
+                            };
+
+                        const onError =
+                            () => {
+                                if (finished)
+                                    return;
+
+                                finished = true;
+                                cleanup();
+                                reject(
+                                    new Error(
+                                        "Next song could not load"
+                                    )
+                                );
+                            };
+
+                        next.addEventListener(
+                            "canplay",
+                            onCanPlay,
+                            { once: true }
+                        );
+
+                        next.addEventListener(
+                            "error",
+                            onError,
+                            { once: true }
+                        );
+
+                        /*
+                         * Some browsers may already
+                         * have enough data.
+                         */
+
+                        if (
+                            next.readyState >= 3
+                        ) {
+                            onCanPlay();
+                        }
+                    }
+                );
+
+                /*
+                 * Start next song.
+                 */
+
+                await next.play();
+
+                const start =
+                    performance.now();
+
+                const startVolume =
+                    Math.max(
+                        0,
+                        Math.min(
+                            1,
+                            current.volume
+                        )
+                    );
+
+                /*
+                 * 7 SECOND REAL CROSSFADE
+                 */
+
+                await new Promise<void>(
+                    (resolve) => {
+                        const animate =
+                            (now: number) => {
+                                const elapsed =
+                                    now - start;
+
+                                const progress =
+                                    Math.min(
+                                        elapsed /
+                                        (CROSSFADE_SECONDS *
+                                            1000),
+                                        1
+                                    );
+
+                                /*
+                                 * Smooth easing.
+                                 */
+
+                                const eased =
+                                    progress *
+                                    progress *
+                                    (3 -
+                                        2 *
+                                        progress);
+
+                                current.volume =
+                                    Math.max(
+                                        0,
+                                        startVolume *
+                                        (1 -
+                                            eased)
+                                    );
+
+                                next.volume =
+                                    Math.min(
+                                        targetVolume,
+                                        targetVolume *
+                                        eased
+                                    );
+
+                                if (
+                                    progress <
+                                    1
+                                ) {
+                                    requestAnimationFrame(
+                                        animate
+                                    );
+                                } else {
+                                    resolve();
+                                }
+                            };
+
+                        requestAnimationFrame(
+                            animate
+                        );
+                    }
+                );
+
+                /*
+                 * Stop OLD song.
+                 */
+
+                current.pause();
+                current.currentTime = 0;
+                current.volume = 0;
+
+                /*
+                 * Make next audio active.
+                 */
+
+                activeSlotRef.current =
+                    activeSlotRef.current ===
+                        "A"
+                        ? "B"
+                        : "A";
+
+                saveIndex(nextIndex);
+
+                setCurrentTime(0);
+
+                if (
+                    Number.isFinite(
+                        next.duration
+                    )
+                ) {
+                    setDuration(
+                        next.duration
+                    );
+                }
+
+                next.volume =
+                    targetVolume;
+
+                setIsPlaying(true);
+            } catch (error) {
+                console.error(
+                    "Crossfade error:",
+                    error
+                );
+
+                /*
+                 * Recovery:
+                 * Stop next if something failed.
+                 */
+
+                next.pause();
+                next.src = "";
+                next.volume = 0;
+
+                /*
+                 * Keep current song alive.
+                 */
+
+                current.volume =
+                    volumeRef.current;
+
+                if (
+                    !current.paused
+                ) {
+                    setIsPlaying(true);
+                }
+            } finally {
+                switchingRef.current =
+                    false;
+
+                /*
+                 * Allow another crossfade.
+                 */
+
+                setTimeout(() => {
+                    crossfadeStartedRef.current =
+                        false;
+                }, 300);
+            }
+        },
+        [
+            getActiveAudio,
+            getInactiveAudio,
+        ]
+    );
 
     /*
      * -------------------------------------------------------
@@ -135,238 +602,220 @@ export function PlayerProvider({
      */
 
     useEffect(() => {
-        const audio = audioRef.current;
+        const audioA =
+            audioARef.current;
 
-        if (!audio) return;
+        const audioB =
+            audioBRef.current;
 
-        const handleTimeUpdate = () => {
-            setCurrentTime(audio.currentTime);
-        };
-
-        const handleLoadedMetadata = () => {
-            if (Number.isFinite(audio.duration)) {
-                setDuration(audio.duration);
-            }
-        };
-
-        const handleEnded = async () => {
-            if (switchingRef.current) return;
-
-            await changeSong(
-                (currentIndex + 1) % SONG_COUNT,
-                true
-            );
-        };
-
-        const handlePlay = () => {
-            setIsPlaying(true);
-        };
-
-        const handlePause = () => {
-            setIsPlaying(false);
-        };
-
-        audio.addEventListener(
-            "timeupdate",
-            handleTimeUpdate
-        );
-
-        audio.addEventListener(
-            "loadedmetadata",
-            handleLoadedMetadata
-        );
-
-        audio.addEventListener(
-            "ended",
-            handleEnded
-        );
-
-        audio.addEventListener(
-            "play",
-            handlePlay
-        );
-
-        audio.addEventListener(
-            "pause",
-            handlePause
-        );
-
-        return () => {
-            audio.removeEventListener(
-                "timeupdate",
-                handleTimeUpdate
-            );
-
-            audio.removeEventListener(
-                "loadedmetadata",
-                handleLoadedMetadata
-            );
-
-            audio.removeEventListener(
-                "ended",
-                handleEnded
-            );
-
-            audio.removeEventListener(
-                "play",
-                handlePlay
-            );
-
-            audio.removeEventListener(
-                "pause",
-                handlePause
-            );
-        };
-    }, [currentIndex]);
-
-    /*
-     * -------------------------------------------------------
-     * FADE ENGINE
-     * -------------------------------------------------------
-     */
-
-    const fadeVolume = (
-        from: number,
-        to: number,
-        duration: number,
-        callback?: () => void
-    ) => {
-        const audio = audioRef.current;
-
-        if (!audio) return;
-
-        if (fadeTimerRef.current) {
-            window.clearInterval(fadeTimerRef.current);
-        }
-
-        const start = performance.now();
-
-        audio.volume = Math.max(
-            0,
-            Math.min(1, from)
-        );
-
-        fadeTimerRef.current =
-            window.setInterval(() => {
-                const elapsed =
-                    performance.now() - start;
-
-                const progress = Math.min(
-                    elapsed / duration,
-                    1
-                );
-
-                const value =
-                    from + (to - from) * progress;
-
-                audio.volume = Math.max(
-                    0,
-                    Math.min(1, value)
-                );
-
-                if (progress >= 1) {
-                    if (fadeTimerRef.current) {
-                        window.clearInterval(
-                            fadeTimerRef.current
-                        );
-                    }
-
-                    fadeTimerRef.current = null;
-
-                    callback?.();
-                }
-            }, 40);
-    };
-
-    /*
-     * -------------------------------------------------------
-     * CHANGE SONG
-     * -------------------------------------------------------
-     */
-
-    const changeSong = async (
-        nextIndex: number,
-        automatic = false
-    ) => {
-        const audio = audioRef.current;
-
-        if (!audio || switchingRef.current) {
+        if (!audioA || !audioB) {
             return;
         }
 
-        switchingRef.current = true;
-
-        try {
-            const wasPlaying =
-                !audio.paused || automatic;
-
-            /*
-             * Fade current song out.
-             */
-
-            if (!audio.paused) {
-                await new Promise<void>((resolve) => {
-                    fadeVolume(
-                        audio.volume,
-                        0,
-                        FADE_TIME * 1000,
-                        resolve
-                    );
-                });
+        const checkCrossfade = (
+            audio: HTMLAudioElement
+        ) => {
+            if (
+                switchingRef.current ||
+                crossfadeStartedRef.current
+            ) {
+                return;
             }
 
+            if (
+                !audio.duration ||
+                !Number.isFinite(
+                    audio.duration
+                )
+            ) {
+                return;
+            }
+
+            const remaining =
+                audio.duration -
+                audio.currentTime;
+
             /*
-             * IMPORTANT:
-             * Stop the old song completely before
-             * changing source.
-             *
-             * This prevents two songs playing together.
+             * Start crossfade in final 7 sec.
              */
 
-            audio.pause();
-            audio.currentTime = 0;
+            if (
+                remaining <=
+                CROSSFADE_SECONDS &&
+                remaining > 0.15
+            ) {
+                crossfadeStartedRef.current =
+                    true;
 
-            const finalIndex =
-                (nextIndex + SONG_COUNT) %
-                SONG_COUNT;
+                const nextIndex =
+                    (
+                        currentIndexRef.current +
+                        1
+                    ) % SONG_COUNT;
 
-            setCurrentIndex(finalIndex);
-
-            try {
-                localStorage.setItem(
-                    "alone3am-last-song",
-                    String(finalIndex)
-                );
-            } catch { }
-
-            setCurrentTime(0);
-            setDuration(0);
-
-            audio.src = getSongPath(finalIndex);
-            audio.load();
-
-            if (wasPlaying) {
-                await audio.play();
-
-                /*
-                 * Fade new song in.
-                 */
-
-                fadeVolume(
-                    0,
-                    volume,
-                    FADE_TIME * 1000
+                crossfadeTo(
+                    nextIndex
                 );
             }
-        } catch (error) {
-            console.error(
-                "Song change error:",
-                error
+        };
+
+        const onTimeA = () => {
+            checkCrossfade(audioA);
+        };
+
+        const onTimeB = () => {
+            checkCrossfade(audioB);
+        };
+
+        const onEndedA = () => {
+            if (
+                !switchingRef.current
+            ) {
+                const nextIndex =
+                    (
+                        currentIndexRef.current +
+                        1
+                    ) % SONG_COUNT;
+
+                crossfadeStartedRef.current =
+                    false;
+
+                crossfadeTo(
+                    nextIndex
+                );
+            }
+        };
+
+        const onEndedB = () => {
+            if (
+                !switchingRef.current
+            ) {
+                const nextIndex =
+                    (
+                        currentIndexRef.current +
+                        1
+                    ) % SONG_COUNT;
+
+                crossfadeStartedRef.current =
+                    false;
+
+                crossfadeTo(
+                    nextIndex
+                );
+            }
+        };
+
+        const onPlay = () => {
+            setIsPlaying(true);
+        };
+
+        const onPause = () => {
+            /*
+             * During crossfade one audio can pause
+             * while the other is playing.
+             */
+
+            if (
+                switchingRef.current
+            ) {
+                return;
+            }
+
+            const active =
+                getActiveAudio();
+
+            if (
+                active?.paused
+            ) {
+                setIsPlaying(false);
+            }
+        };
+
+        audioA.addEventListener(
+            "timeupdate",
+            onTimeA
+        );
+
+        audioB.addEventListener(
+            "timeupdate",
+            onTimeB
+        );
+
+        audioA.addEventListener(
+            "ended",
+            onEndedA
+        );
+
+        audioB.addEventListener(
+            "ended",
+            onEndedB
+        );
+
+        audioA.addEventListener(
+            "play",
+            onPlay
+        );
+
+        audioB.addEventListener(
+            "play",
+            onPlay
+        );
+
+        audioA.addEventListener(
+            "pause",
+            onPause
+        );
+
+        audioB.addEventListener(
+            "pause",
+            onPause
+        );
+
+        return () => {
+            audioA.removeEventListener(
+                "timeupdate",
+                onTimeA
             );
-        } finally {
-            switchingRef.current = false;
-        }
-    };
+
+            audioB.removeEventListener(
+                "timeupdate",
+                onTimeB
+            );
+
+            audioA.removeEventListener(
+                "ended",
+                onEndedA
+            );
+
+            audioB.removeEventListener(
+                "ended",
+                onEndedB
+            );
+
+            audioA.removeEventListener(
+                "play",
+                onPlay
+            );
+
+            audioB.removeEventListener(
+                "play",
+                onPlay
+            );
+
+            audioA.removeEventListener(
+                "pause",
+                onPause
+            );
+
+            audioB.removeEventListener(
+                "pause",
+                onPause
+            );
+        };
+    }, [
+        crossfadeTo,
+        getActiveAudio,
+    ]);
 
     /*
      * -------------------------------------------------------
@@ -375,45 +824,32 @@ export function PlayerProvider({
      */
 
     const togglePlay = async () => {
-        const audio = audioRef.current;
+        const audio =
+            getActiveAudio();
 
-        if (!audio) return;
+        if (
+            !audio ||
+            switchingRef.current
+        ) {
+            return;
+        }
 
         try {
             if (audio.paused) {
-                /*
-                 * Start at zero and fade in.
-                 */
-
-                audio.volume = 0;
+                audio.volume =
+                    volumeRef.current;
 
                 await audio.play();
 
-                fadeVolume(
-                    0,
-                    volume,
-                    FADE_TIME * 1000
-                );
+                setIsPlaying(true);
             } else {
-                /*
-                 * Fade out before pausing.
-                 */
-
-                await new Promise<void>((resolve) => {
-                    fadeVolume(
-                        audio.volume,
-                        0,
-                        FADE_TIME * 1000,
-                        resolve
-                    );
-                });
-
                 audio.pause();
-                audio.volume = volume;
+
+                setIsPlaying(false);
             }
         } catch (error) {
             console.error(
-                "Play/pause error:",
+                "Playback error:",
                 error
             );
         }
@@ -426,8 +862,23 @@ export function PlayerProvider({
      */
 
     const nextSong = async () => {
-        await changeSong(
-            (currentIndex + 1) % SONG_COUNT
+        if (
+            switchingRef.current
+        ) {
+            return;
+        }
+
+        const nextIndex =
+            (
+                currentIndexRef.current +
+                1
+            ) % SONG_COUNT;
+
+        crossfadeStartedRef.current =
+            true;
+
+        await crossfadeTo(
+            nextIndex
         );
     };
 
@@ -438,9 +889,24 @@ export function PlayerProvider({
      */
 
     const prevSong = async () => {
-        await changeSong(
-            (currentIndex - 1 + SONG_COUNT) %
-            SONG_COUNT
+        if (
+            switchingRef.current
+        ) {
+            return;
+        }
+
+        const previousIndex =
+            (
+                currentIndexRef.current -
+                1 +
+                SONG_COUNT
+            ) % SONG_COUNT;
+
+        crossfadeStartedRef.current =
+            true;
+
+        await crossfadeTo(
+            previousIndex
         );
     };
 
@@ -450,20 +916,48 @@ export function PlayerProvider({
      * -------------------------------------------------------
      */
 
-    const seek = (time: number) => {
-        const audio = audioRef.current;
+    const seek = (
+        time: number
+    ) => {
+        const audio =
+            getActiveAudio();
 
         if (!audio) return;
 
-        audio.currentTime = Math.max(
-            0,
-            Math.min(
-                time,
-                audio.duration || 0
+        if (
+            !Number.isFinite(
+                audio.duration
             )
-        );
+        ) {
+            return;
+        }
 
-        setCurrentTime(audio.currentTime);
+        /*
+         * If user seeks away from the final 7 sec,
+         * cancel pending automatic crossfade.
+         */
+
+        if (
+            audio.duration -
+            time >
+            CROSSFADE_SECONDS
+        ) {
+            crossfadeStartedRef.current =
+                false;
+        }
+
+        audio.currentTime =
+            Math.max(
+                0,
+                Math.min(
+                    time,
+                    audio.duration
+                )
+            );
+
+        setCurrentTime(
+            audio.currentTime
+        );
     };
 
     /*
@@ -472,18 +966,54 @@ export function PlayerProvider({
      * -------------------------------------------------------
      */
 
-    const setVolume = (value: number) => {
-        const clean = Math.max(
-            0,
-            Math.min(1, value)
-        );
+    const setVolume = (
+        value: number
+    ) => {
+        const clean =
+            Math.max(
+                0,
+                Math.min(
+                    1,
+                    value
+                )
+            );
+
+        volumeRef.current =
+            clean;
 
         setVolumeState(clean);
 
-        const audio = audioRef.current;
+        const active =
+            getActiveAudio();
 
-        if (audio) {
-            audio.volume = clean;
+        const inactive =
+            getInactiveAudio();
+
+        /*
+         * Only change active audio directly.
+         *
+         * During crossfade, inactive audio is
+         * controlled by the crossfade engine.
+         */
+
+        if (
+            active &&
+            !switchingRef.current
+        ) {
+            active.volume =
+                clean;
+        }
+
+        /*
+         * If inactive audio isn't playing,
+         * keep it silent.
+         */
+
+        if (
+            inactive &&
+            inactive.paused
+        ) {
+            inactive.volume = 0;
         }
     };
 
@@ -510,7 +1040,10 @@ export function PlayerProvider({
 }
 
 export function usePlayer() {
-    const context = useContext(PlayerContext);
+    const context =
+        useContext(
+            PlayerContext
+        );
 
     if (!context) {
         throw new Error(
